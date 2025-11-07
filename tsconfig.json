@@ -4,7 +4,8 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@vercel/speed-insights/next": ["./src/lib/speed-insights.tsx"]
     },
     "noImplicitAny": false,
     "noUnusedParameters": false,

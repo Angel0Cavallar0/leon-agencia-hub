@@ -23,7 +23,8 @@
 
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@vercel/speed-insights/next": ["./src/lib/speed-insights.tsx"]
     }
   },
   "include": ["src"]

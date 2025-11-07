@@ -13,6 +13,10 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@vercel/speed-insights/next": path.resolve(
+        __dirname,
+        "./src/lib/speed-insights"
+      ),
     },
   },
 }));
