@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
-import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Table,
@@ -22,9 +20,7 @@ import {
 
 export default function ClickupTarefas() {
   const [tarefas, setTarefas] = useState<any[]>([]);
-  const [clientes, setClientes] = useState<any[]>([]);
   const [colaboradores, setColaboradores] = useState<any[]>([]);
-  const [filtroCliente, setFiltroCliente] = useState<string>("");
   const [filtroColaborador, setFiltroColaborador] = useState<string>("");
   const [filtroStatus, setFiltroStatus] = useState<string>("");
 
@@ -33,18 +29,27 @@ export default function ClickupTarefas() {
   }, []);
 
   const fetchData = async () => {
-    const [tarefasRes, clientesRes, colaboradoresRes] = await Promise.all([
+    const [tarefasRes, colaboradoresRes] = await Promise.all([
       supabase.from("informacoes_tasks_clickup").select("*"),
-      supabase.from("clientes_infos").select("id_cliente, nome_cliente"),
       supabase.from("colaborador").select("id_clickup, nome, sobrenome"),
     ]);
 
     if (tarefasRes.data) setTarefas(tarefasRes.data);
-    if (clientesRes.data) setClientes(clientesRes.data);
     if (colaboradoresRes.data) setColaboradores(colaboradoresRes.data);
   };
 
   const statusOptions = Array.from(new Set(tarefas.map((t) => t.status).filter(Boolean)));
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "-";
+
+    const parsedDate = new Date(dateString);
+    if (Number.isNaN(parsedDate.getTime())) {
+      return "-";
+    }
+
+    return parsedDate.toLocaleDateString("pt-BR");
+  };
 
   const filteredTarefas = tarefas.filter((tarefa) => {
     if (filtroColaborador && tarefa.id_colaborador_clickup !== filtroColaborador) return false;
@@ -62,9 +67,15 @@ export default function ClickupTarefas() {
     return variants[prioridade?.toLowerCase()] || "default";
   };
 
-  const isOverdue = (dataEntrega: string, status: string) => {
+  const isOverdue = (dataEntrega: string | null, status: string | null) => {
     if (!dataEntrega || status === "Concluído") return false;
-    return new Date(dataEntrega) < new Date();
+
+    const parsedDate = new Date(dataEntrega);
+    if (Number.isNaN(parsedDate.getTime())) {
+      return false;
+    }
+
+    return parsedDate < new Date();
   };
 
   return (
@@ -138,11 +149,7 @@ export default function ClickupTarefas() {
                   <TableCell>{tarefa.nome_colaborador}</TableCell>
                   <TableCell>{tarefa.nome_lista}</TableCell>
                   <TableCell>{tarefa.nome_pasta}</TableCell>
-                  <TableCell>
-                    {tarefa.data_entrega
-                      ? new Date(tarefa.data_entrega).toLocaleDateString("pt-BR")
-                      : "-"}
-                  </TableCell>
+                  <TableCell>{formatDate(tarefa.data_entrega)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
