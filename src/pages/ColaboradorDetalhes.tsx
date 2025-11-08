@@ -34,7 +34,7 @@ type ColaboradorPrivate = Database["public"]["Tables"]["colaborador_private"]["R
 export default function ColaboradorDetalhes() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { userRole } = useAuth();
+  const { userRole, user } = useAuth();
   const [loading, setLoading] = useState(false);
   type EditableColaborador = Pick<
     Colaborador,
@@ -82,6 +82,10 @@ export default function ColaboradorDetalhes() {
   const [availablePrivateFields, setAvailablePrivateFields] = useState<string[]>([]);
   const [isDesligadoDialogOpen, setIsDesligadoDialogOpen] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<StatusValue | null>(null);
+  const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
+  const [pendingRole, setPendingRole] = useState<"user" | "supervisor" | "admin" | null>(null);
+  const [rolePassword, setRolePassword] = useState("");
+  const [isConfirmingRole, setIsConfirmingRole] = useState(false);
 
   const statusOptions = [
     {
@@ -166,6 +170,69 @@ export default function ColaboradorDetalhes() {
       applyStatusChange("desligado");
     }
     closeDesligadoDialog();
+  };
+
+  const handleRoleSelection = (value: "user" | "supervisor" | "admin") => {
+    if (value === role) {
+      return;
+    }
+
+    setPendingRole(value);
+    setRolePassword("");
+    setIsRoleDialogOpen(true);
+  };
+
+  const closeRoleDialog = () => {
+    setIsRoleDialogOpen(false);
+    setPendingRole(null);
+    setRolePassword("");
+  };
+
+  const confirmRoleChange = async () => {
+    if (!pendingRole) {
+      return;
+    }
+
+    if (!user?.email) {
+      toast.error("Não foi possível validar suas credenciais.");
+      return;
+    }
+
+    if (!rolePassword) {
+      toast.error("Informe sua senha para confirmar.");
+      return;
+    }
+
+    setIsConfirmingRole(true);
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: rolePassword,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setRole(pendingRole);
+      setColaborador((previous) => {
+        if (!previous) return previous;
+        return {
+          ...previous,
+          admin: pendingRole === "admin",
+          supervisor: pendingRole === "supervisor",
+        };
+      });
+
+      toast.success("Nível de acesso atualizado.");
+      closeRoleDialog();
+    } catch (error) {
+      console.error("Erro ao confirmar nível de acesso:", error);
+      toast.error("Senha incorreta. Tente novamente.");
+    } finally {
+      setIsConfirmingRole(false);
+    }
   };
 
   useEffect(() => {
@@ -788,14 +855,9 @@ export default function ColaboradorDetalhes() {
                 </div>
                 <Select
                   value={role}
-                  onValueChange={(value) => {
-                    setRole(value as "user" | "supervisor" | "admin");
-                    setColaborador({
-                      ...colaborador,
-                      admin: value === "admin",
-                      supervisor: value === "supervisor",
-                    });
-                  }}
+                  onValueChange={(value) =>
+                    handleRoleSelection(value as "user" | "supervisor" | "admin")
+                  }
                 >
                   <SelectTrigger
                     aria-label="Selecione o nível de acesso"
@@ -818,6 +880,48 @@ export default function ColaboradorDetalhes() {
                 </Select>
               </CardHeader>
             </Card>
+            <AlertDialog
+              open={isRoleDialogOpen}
+              onOpenChange={(open) => {
+                if (!open) {
+                  closeRoleDialog();
+                } else {
+                  setIsRoleDialogOpen(true);
+                }
+              }}
+            >
+              <AlertDialogContent className={cardSurfaceClasses}>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Confirmar alteração de acesso</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Para alterar o nível de acesso do colaborador, confirme sua senha abaixo.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmacao-senha">Senha</Label>
+                  <Input
+                    id="confirmacao-senha"
+                    type="password"
+                    value={rolePassword}
+                    onChange={(event) => setRolePassword(event.target.value)}
+                    className={inputSurfaceClasses}
+                    autoFocus
+                  />
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogCancel onClick={closeRoleDialog} disabled={isConfirmingRole}>
+                    Cancelar
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={confirmRoleChange}
+                    disabled={isConfirmingRole}
+                    className="bg-emerald-700 text-white hover:bg-emerald-800"
+                  >
+                    {isConfirmingRole ? "Validando..." : "Confirmar"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </form>
       </div>
