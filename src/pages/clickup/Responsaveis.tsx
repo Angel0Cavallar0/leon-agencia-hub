@@ -18,7 +18,6 @@ export default function ClickupResponsaveis() {
   const [clientes, setClientes] = useState<any[]>([]);
   const [colaboradores, setColaboradores] = useState<any[]>([]);
   const [selectedCliente, setSelectedCliente] = useState<string>("");
-  const [secondaryCliente, setSecondaryCliente] = useState<string>("");
   const [responsaveis, setResponsaveis] = useState<any>({
     atendimento_id: "",
     design_id: "",
@@ -140,79 +139,69 @@ export default function ClickupResponsaveis() {
             </p>
           </div>
           <div className="flex flex-col gap-3 w-full lg:w-auto lg:flex-row lg:items-center lg:justify-end">
-            <Select value={selectedCliente} onValueChange={setSelectedCliente}>
-              <SelectTrigger className="w-full min-w-[220px] bg-background border border-border/80 dark:bg-muted/50">
-                <SelectValue placeholder="Selecionar Cliente" />
-              </SelectTrigger>
-              <SelectContent className="max-h-60">
-                {clientes.map((cliente) => (
-                  <SelectItem key={cliente.id_cliente} value={cliente.id_cliente}>
-                    {cliente.nome_cliente}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex flex-col gap-2 w-full lg:flex-row lg:items-center lg:gap-3">
+              <span className="text-sm font-medium text-muted-foreground lg:text-base">
+                Selecione o cliente
+              </span>
+              <Select value={selectedCliente} onValueChange={setSelectedCliente}>
+                <SelectTrigger className="w-full min-w-[220px] bg-background border border-border/80 dark:bg-muted/50">
+                  <SelectValue placeholder="Selecionar Cliente" />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  {clientes.map((cliente) => (
+                    <SelectItem key={cliente.id_cliente} value={cliente.id_cliente}>
+                      {cliente.nome_cliente}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-            <Select value={secondaryCliente} onValueChange={setSecondaryCliente}>
-              <SelectTrigger className="w-full min-w-[220px] bg-background border border-border/80 dark:bg-muted/50">
-                <SelectValue placeholder="Selecionar um cliente" />
-              </SelectTrigger>
-              <SelectContent className="max-h-60">
-                {clientes.map((cliente) => (
-                  <SelectItem key={`secondary-${cliente.id_cliente}`} value={cliente.id_cliente}>
-                    {cliente.nome_cliente}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Button
-              onClick={handleSave}
-              className="bg-emerald-500 text-white font-semibold uppercase tracking-wide hover:bg-emerald-600 focus-visible:ring-emerald-500"
-              disabled={!selectedCliente}
-            >
-              SALVAR INFORMAÇÕES
+            <Button onClick={handleSave} disabled={!selectedCliente}>
+              Salvar Informações
             </Button>
           </div>
         </div>
 
-        <Card className="border border-border/60 bg-card/60 backdrop-blur">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl">Funções e Responsáveis</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Defina os responsáveis por cada etapa
-            </p>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-6 md:grid-cols-2">
-              {roles.map((roleItem) => (
-                <div key={roleItem.key} className="space-y-2">
-                  <Label className="text-sm font-medium text-muted-foreground">
-                    {roleItem.label}
-                  </Label>
-                  <Select
-                    value={responsaveis[roleItem.key] || ""}
-                    onValueChange={(value) =>
-                      setResponsaveis({ ...responsaveis, [roleItem.key]: value })
-                    }
-                    disabled={!selectedCliente}
-                  >
-                    <SelectTrigger className="bg-background text-foreground border border-border/70 dark:bg-muted/60 dark:text-foreground">
-                      <SelectValue placeholder="Selecione um colaborador" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-60">
-                      {colaboradores.map((colab) => (
-                        <SelectItem key={colab.id_clickup} value={colab.id_clickup || ""}>
-                          {colab.nome} {colab.sobrenome} ({colab.apelido})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex justify-center">
+          <Card className="w-full max-w-5xl border border-border/60 bg-card/60 backdrop-blur">
+            <CardHeader className="space-y-1">
+              <CardTitle className="text-2xl">Funções e Responsáveis</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Defina os responsáveis por cada etapa
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-6 md:grid-cols-2">
+                {roles.map((roleItem) => (
+                  <div key={roleItem.key} className="space-y-2">
+                    <Label className="text-sm font-medium text-muted-foreground">
+                      {roleItem.label}
+                    </Label>
+                    <Select
+                      value={responsaveis[roleItem.key] || ""}
+                      onValueChange={(value) =>
+                        setResponsaveis({ ...responsaveis, [roleItem.key]: value })
+                      }
+                      disabled={!selectedCliente}
+                    >
+                      <SelectTrigger className="bg-background text-foreground border border-border/70 dark:bg-muted/60 dark:text-foreground">
+                        <SelectValue placeholder="Selecione um colaborador" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        {colaboradores.map((colab) => (
+                          <SelectItem key={colab.id_clickup} value={colab.id_clickup || ""}>
+                            {colab.nome} {colab.sobrenome} ({colab.apelido})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </Layout>
   );
