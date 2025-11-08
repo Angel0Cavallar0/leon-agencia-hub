@@ -28,6 +28,45 @@ import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Database } from "@/integrations/supabase/types";
+import { logger } from "@/lib/logger";
+
+const buildErrorContext = (
+  error: unknown,
+  extra: Record<string, unknown> = {}
+) => {
+  const context: Record<string, unknown> = { ...extra };
+
+  if (error && typeof error === "object") {
+    const err = error as Record<string, unknown>;
+
+    if (typeof err.message === "string") {
+      context.errorMessage = err.message;
+    }
+    if (typeof err.details === "string") {
+      context.errorDetails = err.details;
+    }
+    if (typeof err.hint === "string") {
+      context.errorHint = err.hint;
+    }
+    if (typeof err.code === "string") {
+      context.errorCode = err.code;
+    }
+    if (typeof err.status === "number" || typeof err.status === "string") {
+      context.errorStatus = err.status;
+    }
+    if (typeof err.stack === "string") {
+      context.errorStack = err.stack;
+    }
+  } else if (error !== undefined && error !== null) {
+    context.errorMessage = String(error);
+  }
+
+  if (!context.errorMessage) {
+    context.errorMessage = "Erro desconhecido";
+  }
+
+  return context;
+};
 
 type Colaborador = Database["public"]["Tables"]["colaborador"]["Row"];
 type ColaboradorPrivate = Database["public"]["Tables"]["colaborador_private"]["Row"];
@@ -156,7 +195,9 @@ export default function ColaboradorDetalhes() {
       .single();
 
     if (error) {
-      console.error("Erro ao buscar colaborador:", error);
+      await logger.error("Erro ao buscar colaborador", "COLAB_FETCH_ERROR", buildErrorContext(error, {
+        colaboradorId: id,
+      }));
       toast.error("Erro ao carregar colaborador");
       return;
     }
@@ -188,7 +229,13 @@ export default function ColaboradorDetalhes() {
       .maybeSingle();
 
     if (error) {
-      console.error("Erro ao buscar dados privados:", error);
+      await logger.error(
+        "Erro ao buscar dados privados do colaborador",
+        "COLAB_PRIVATE_FETCH_ERROR",
+        buildErrorContext(error, {
+          colaboradorId: id,
+        })
+      );
       return;
     }
 
@@ -209,6 +256,14 @@ export default function ColaboradorDetalhes() {
           emergencyPhone = parsed.telefone?.toString() || "";
         }
       } catch (error) {
+        await logger.error(
+          "Erro ao interpretar dados de contato de emergência do colaborador",
+          "COLAB_PRIVATE_EMERGENCY_PARSE_ERROR",
+          buildErrorContext(error, {
+            colaboradorId: id,
+            rawEmergencyValue: emergencyValue,
+          })
+        );
         const [namePart, phonePart] = emergencyValue.split("|").map((part) => part.trim());
         emergencyName = namePart || emergencyValue;
         emergencyPhone = phonePart || "";
@@ -357,14 +412,30 @@ export default function ColaboradorDetalhes() {
           });
 
         if (privateError) {
-          console.error("Erro ao atualizar dados privados:", privateError);
+          await logger.error(
+            "Erro ao atualizar dados privados do colaborador",
+            "COLAB_PRIVATE_UPDATE_ERROR",
+            buildErrorContext(privateError, {
+              colaboradorId: id,
+              privatePayload,
+            })
+          );
           toast.error("Colaborador atualizado, mas houve erro nos dados privados");
         }
       }
 
       toast.success("Colaborador atualizado com sucesso!");
     } catch (error: any) {
-      console.error("Erro ao atualizar colaborador:", error);
+      await logger.error(
+        "Erro ao atualizar colaborador",
+        "COLAB_UPDATE_ERROR",
+        buildErrorContext(error, {
+          colaboradorId: id,
+          role,
+          status,
+          currentColaborador: colaborador,
+        })
+      );
       toast.error(error.message || "Erro ao atualizar colaborador");
     } finally {
       setLoading(false);

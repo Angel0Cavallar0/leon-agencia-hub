@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 import {
   Table,
   TableBody,
@@ -33,7 +34,13 @@ export default function Colaboradores() {
       .order("nome", { ascending: true });
 
     if (error) {
-      console.error("Erro ao buscar colaboradores:", error);
+      await logger.error("Erro ao buscar colaboradores", "COLAB_LIST_FETCH_ERROR", {
+        errorMessage: error.message,
+        errorDetails: error.details,
+        errorHint: error.hint,
+        errorCode: error.code,
+        errorStatus: error.status,
+      });
       return;
     }
     setColaboradores(data || []);
