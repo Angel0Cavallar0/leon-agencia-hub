@@ -12,7 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
@@ -44,7 +43,21 @@ export default function ColaboradorDetalhes() {
     | "admin"
     | "supervisor"
   >;
-  type PrivateData = Pick<ColaboradorPrivate, "email_pessoal" | "whatsapp" | "data_aniversario">;
+  type PrivateSupabaseData = Pick<
+    ColaboradorPrivate,
+    "email_pessoal" | "whatsapp" | "data_aniversario"
+  > &
+    Partial<ColaboradorPrivate>;
+
+  type PrivateData = {
+    cpf: string;
+    rg: string;
+    data_nascimento: string;
+    endereco_residencial: string;
+    telefone_pessoal: string;
+    email_pessoal: string;
+    contato_emergencia: string;
+  };
 
   const [colaborador, setColaborador] = useState<EditableColaborador | null>(null);
   const [privateData, setPrivateData] = useState<PrivateData | null>(null);
@@ -52,6 +65,7 @@ export default function ColaboradorDetalhes() {
   const [status, setStatus] = useState<"ativo" | "ferias" | "afastado">("ativo");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [sensitiveVisible, setSensitiveVisible] = useState(true);
 
   const statusOptions = [
     {
@@ -151,13 +165,17 @@ export default function ColaboradorDetalhes() {
       return;
     }
 
-    setPrivateData(
-      data || {
-        email_pessoal: "",
-        whatsapp: "",
-        data_aniversario: "",
-      }
-    );
+    const supabaseData = (data || {}) as PrivateSupabaseData;
+
+    setPrivateData({
+      cpf: (supabaseData.cpf as string) || "",
+      rg: (supabaseData.rg as string) || "",
+      data_nascimento: supabaseData.data_aniversario || "",
+      endereco_residencial: (supabaseData.endereco as string) || "",
+      telefone_pessoal: supabaseData.whatsapp || "",
+      email_pessoal: supabaseData.email_pessoal || "",
+      contato_emergencia: (supabaseData.contato_emergencia as string) || "",
+    });
   };
 
   const handleUpdateColaborador = async (e: React.FormEvent) => {
@@ -204,9 +222,9 @@ export default function ColaboradorDetalhes() {
           .from("colaborador_private")
           .upsert({
             id_colaborador: id,
-            email_pessoal: privateData.email_pessoal ?? null,
-            whatsapp: privateData.whatsapp ?? null,
-            data_aniversario: privateData.data_aniversario ?? null,
+            email_pessoal: privateData.email_pessoal || null,
+            whatsapp: privateData.telefone_pessoal || null,
+            data_aniversario: privateData.data_nascimento || null,
           });
 
         if (privateError) {
@@ -239,10 +257,6 @@ export default function ColaboradorDetalhes() {
     );
   }
 
-  const collaboratorInitials = `${(colaborador.nome || "").charAt(0)}${(colaborador.sobrenome || "").charAt(0)}`
-    .toUpperCase()
-    .trim() || (colaborador.nome || "").charAt(0).toUpperCase();
-
   return (
     <Layout>
       <div className="w-full max-w-6xl space-y-6">
@@ -267,133 +281,117 @@ export default function ColaboradorDetalhes() {
           </div>
 
           <div className="grid gap-6 xl:grid-cols-2">
-            <Card className="order-1">
-              <CardHeader>
-                <CardTitle>Informações Principais</CardTitle>
+            <Card className="order-1 border border-black/40 rounded-xl">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-xl font-semibold text-foreground">
+                  Informações Principais
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                    <Label htmlFor="foto_colaborador">Foto do Colaborador</Label>
-                    <div className="flex items-center gap-4">
-                      <Avatar className="h-20 w-20 border border-muted bg-muted/40">
-                        {photoPreview ? (
-                          <AvatarImage src={photoPreview} alt={`Foto de ${colaborador.nome}`} />
-                        ) : (
-                          <AvatarFallback className="text-sm font-medium uppercase">
-                            {collaboratorInitials || "?"}
-                          </AvatarFallback>
-                        )}
-                      </Avatar>
-                      <div className="flex-1 space-y-2">
-                        <Input
-                          id="foto_colaborador"
-                          type="file"
-                          accept="image/*"
-                          onChange={handlePhotoChange}
-                        />
-                        {photoFile && (
-                          <p className="text-sm text-muted-foreground">
-                            Arquivo selecionado: {photoFile.name}
-                          </p>
-                        )}
-                      </div>
-                    </div>
+              <CardContent className="flex flex-col gap-6 lg:flex-row">
+                <div className="flex w-full max-w-[180px] flex-col items-center gap-4">
+                  <div
+                    className="flex h-36 w-36 items-center justify-center rounded-full bg-emerald-800 text-lg font-semibold uppercase tracking-wide text-white"
+                    style={
+                      photoPreview
+                        ? {
+                            backgroundImage: `url(${photoPreview})`,
+                            backgroundSize: "cover",
+                            backgroundPosition: "center",
+                          }
+                        : undefined
+                    }
+                  >
+                    {!photoPreview && "foto"}
                   </div>
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="nome">Nome *</Label>
-                      <Input
-                        id="nome"
-                        required
-                        value={colaborador.nome || ""}
-                        onChange={(e) =>
-                          setColaborador({ ...colaborador, nome: e.target.value })
-                        }
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="sobrenome">Sobrenome</Label>
-                      <Input
-                        id="sobrenome"
-                        value={colaborador.sobrenome || ""}
-                        onChange={(e) =>
-                          setColaborador({
-                            ...colaborador,
-                            sobrenome: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
+                  <div>
+                    <input
+                      id="foto_colaborador"
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoChange}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      onClick={() =>
+                        document.getElementById("foto_colaborador")?.click()
+                      }
+                      className="h-8 rounded-full bg-emerald-800 px-4 text-xs font-semibold tracking-wide text-white hover:bg-emerald-900"
+                    >
+                      ALTERAR FOTO
+                    </Button>
+                    {photoFile && (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {photoFile.name}
+                      </p>
+                    )}
                   </div>
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="apelido">Apelido</Label>
-                      <Input
-                        id="apelido"
-                        value={colaborador.apelido || ""}
-                        onChange={(e) =>
-                          setColaborador({ ...colaborador, apelido: e.target.value })
-                        }
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="cargo">Cargo</Label>
-                      <Input
-                        id="cargo"
-                        value={colaborador.cargo || ""}
-                        onChange={(e) =>
-                          setColaborador({ ...colaborador, cargo: e.target.value })
-                        }
-                      />
-                    </div>
-                  </div>
-
+                </div>
+                <div className="grid flex-1 gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="email_corporativo">Email Corporativo</Label>
+                    <Label htmlFor="nome">Nome *</Label>
                     <Input
-                      id="email_corporativo"
-                      type="email"
-                      value={colaborador.email_corporativo || ""}
+                      id="nome"
+                      required
+                      value={colaborador.nome || ""}
+                      className="rounded-lg bg-muted"
+                      onChange={(e) =>
+                        setColaborador({ ...colaborador, nome: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sobrenome">Sobrenome</Label>
+                    <Input
+                      id="sobrenome"
+                      value={colaborador.sobrenome || ""}
+                      className="rounded-lg bg-muted"
                       onChange={(e) =>
                         setColaborador({
                           ...colaborador,
-                          email_corporativo: e.target.value,
+                          sobrenome: e.target.value,
                         })
                       }
                     />
                   </div>
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="id_clickup">ID ClickUp</Label>
-                      <Input
-                        id="id_clickup"
-                        value={colaborador.id_clickup || ""}
-                        onChange={(e) =>
-                          setColaborador({ ...colaborador, id_clickup: e.target.value })
-                        }
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="id_slack">ID Slack</Label>
-                      <Input
-                        id="id_slack"
-                        value={colaborador.id_slack || ""}
-                        onChange={(e) =>
-                          setColaborador({ ...colaborador, id_slack: e.target.value })
-                        }
-                      />
-                    </div>
-                  </div>
-
                   <div className="space-y-2">
-                    <Label htmlFor="data_admissao">Data de Admissão</Label>
+                    <Label htmlFor="apelido">Apelido</Label>
+                    <Input
+                      id="apelido"
+                      value={colaborador.apelido || ""}
+                      className="rounded-lg bg-muted"
+                      onChange={(e) =>
+                        setColaborador({ ...colaborador, apelido: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="id_colaborador">ID Colaborador</Label>
+                    <Input
+                      id="id_colaborador"
+                      value={colaborador.id_colaborador || ""}
+                      className="rounded-lg bg-muted"
+                      readOnly
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cargo">Cargo</Label>
+                    <Input
+                      id="cargo"
+                      value={colaborador.cargo || ""}
+                      className="rounded-lg bg-muted"
+                      onChange={(e) =>
+                        setColaborador({ ...colaborador, cargo: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="data_admissao">Data de Contratação</Label>
                     <Input
                       id="data_admissao"
                       type="date"
                       value={colaborador.data_admissao || ""}
+                      className="rounded-lg bg-muted"
                       onChange={(e) =>
                         setColaborador({
                           ...colaborador,
@@ -402,57 +400,176 @@ export default function ColaboradorDetalhes() {
                       }
                     />
                   </div>
-                </CardContent>
-              </Card>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="email_corporativo">E-mail Corporativo</Label>
+                    <Input
+                      id="email_corporativo"
+                      type="email"
+                      value={colaborador.email_corporativo || ""}
+                      className="rounded-lg bg-muted md:max-w-xl"
+                      onChange={(e) =>
+                        setColaborador({
+                          ...colaborador,
+                          email_corporativo: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="id_clickup">ID ClickUp</Label>
+                    <Input
+                      id="id_clickup"
+                      value={colaborador.id_clickup || ""}
+                      className="rounded-lg bg-muted"
+                      onChange={(e) =>
+                        setColaborador({ ...colaborador, id_clickup: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="id_slack">ID Slack</Label>
+                    <Input
+                      id="id_slack"
+                      value={colaborador.id_slack || ""}
+                      className="rounded-lg bg-muted"
+                      onChange={(e) =>
+                        setColaborador({ ...colaborador, id_slack: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             {userRole === "admin" && privateData ? (
-              <Card className="order-2 border-primary/20">
-                <CardHeader>
-                  <CardTitle>Dados Sensíveis</CardTitle>
-                  <CardDescription>Visível apenas para administradores</CardDescription>
+              <Card className="order-2 border border-black/40 rounded-xl">
+                <CardHeader className="flex items-start justify-between gap-4 pb-4">
+                  <div>
+                    <CardTitle className="text-xl font-semibold text-foreground">
+                      Dados Sensíveis
+                    </CardTitle>
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={() => setSensitiveVisible((prev) => !prev)}
+                    className={`h-8 rounded-full px-4 text-xs font-semibold tracking-wide ${
+                      sensitiveVisible
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {sensitiveVisible ? "visível" : "oculto"}
+                  </Button>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email_pessoal">Email Pessoal</Label>
-                    <Input
-                      id="email_pessoal"
-                      type="email"
-                      value={privateData.email_pessoal || ""}
-                      onChange={(e) =>
-                        setPrivateData({
-                          ...privateData,
-                          email_pessoal: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="whatsapp">WhatsApp</Label>
-                    <Input
-                      id="whatsapp"
-                      value={privateData.whatsapp || ""}
-                      onChange={(e) =>
-                        setPrivateData({
-                          ...privateData,
-                          whatsapp: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="data_aniversario">Data de Aniversário</Label>
-                    <Input
-                      id="data_aniversario"
-                      type="date"
-                      value={privateData.data_aniversario || ""}
-                      onChange={(e) =>
-                        setPrivateData({
-                          ...privateData,
-                          data_aniversario: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
+                <CardContent>
+                  {sensitiveVisible ? (
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="cpf">CPF</Label>
+                        <Input
+                          id="cpf"
+                          value={privateData.cpf}
+                          className="rounded-lg bg-muted"
+                          onChange={(e) =>
+                            setPrivateData({
+                              ...privateData,
+                              cpf: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="rg">RG</Label>
+                        <Input
+                          id="rg"
+                          value={privateData.rg}
+                          className="rounded-lg bg-muted"
+                          onChange={(e) =>
+                            setPrivateData({
+                              ...privateData,
+                              rg: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="data_nascimento">Data de Nascimento</Label>
+                        <Input
+                          id="data_nascimento"
+                          type="date"
+                          value={privateData.data_nascimento}
+                          className="rounded-lg bg-muted"
+                          onChange={(e) =>
+                            setPrivateData({
+                              ...privateData,
+                              data_nascimento: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="endereco_residencial">Endereço Residencial</Label>
+                        <Input
+                          id="endereco_residencial"
+                          value={privateData.endereco_residencial}
+                          className="rounded-lg bg-muted"
+                          onChange={(e) =>
+                            setPrivateData({
+                              ...privateData,
+                              endereco_residencial: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="telefone_pessoal">Telefone Pessoal</Label>
+                        <Input
+                          id="telefone_pessoal"
+                          value={privateData.telefone_pessoal}
+                          className="rounded-lg bg-muted"
+                          onChange={(e) =>
+                            setPrivateData({
+                              ...privateData,
+                              telefone_pessoal: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email_pessoal">E-mail Pessoal</Label>
+                        <Input
+                          id="email_pessoal"
+                          type="email"
+                          value={privateData.email_pessoal}
+                          className="rounded-lg bg-muted"
+                          onChange={(e) =>
+                            setPrivateData({
+                              ...privateData,
+                              email_pessoal: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="contato_emergencia">Contato de Emergência</Label>
+                        <Input
+                          id="contato_emergencia"
+                          value={privateData.contato_emergencia}
+                          className="rounded-lg bg-muted"
+                          onChange={(e) =>
+                            setPrivateData({
+                              ...privateData,
+                              contato_emergencia: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-muted-foreground/40 p-6 text-center text-sm text-muted-foreground">
+                      Os dados sensíveis estão ocultos. Clique em "visível" para exibir novamente.
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ) : (
