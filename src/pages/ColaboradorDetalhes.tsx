@@ -762,45 +762,6 @@ export default function ColaboradorDetalhes() {
             </Card>
 
             <Card className={`order-4 ${cardSurfaceClasses}`}>
-              <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:space-y-0">
-                <div className="flex flex-col">
-                  <CardTitle className="text-lg">Acesso e Permissões</CardTitle>
-                  <CardDescription>Defina os níveis de acesso disponíveis.</CardDescription>
-                </div>
-                <Select
-                  value={role}
-                  onValueChange={(value) => {
-                    setRole(value as "user" | "supervisor" | "admin");
-                    setColaborador({
-                      ...colaborador,
-                      admin: value === "admin",
-                      supervisor: value === "supervisor",
-                    });
-                  }}
-                >
-                  <SelectTrigger
-                    aria-label="Selecione o nível de acesso"
-                    className={selectTriggerClasses}
-                  >
-                    <SelectValue placeholder="Selecione um nível de acesso" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {roleOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        <div className="flex flex-col gap-1">
-                          <span className="font-medium">{option.label}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {option.description}
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </CardHeader>
-            </Card>
-
-            <Card className={`order-4 ${cardSurfaceClasses}`}>
               <CardHeader>
                 <CardTitle className="text-lg">Permissões e Acessos</CardTitle>
                 <CardDescription>Defina o nível de acesso do colaborador.</CardDescription>
