@@ -117,7 +117,7 @@ export default function ColaboradorDetalhes() {
   const [status, setStatus] = useState<"ativo" | "ferias" | "afastado" | "desligado">("ativo");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [sensitiveVisible, setSensitiveVisible] = useState(true);
+  const [sensitiveVisible, setSensitiveVisible] = useState(false);
   const [availablePrivateFields, setAvailablePrivateFields] = useState<string[]>([]);
   const [showDesligadoDialog, setShowDesligadoDialog] = useState(false);
 
@@ -653,7 +653,7 @@ export default function ColaboradorDetalhes() {
                         : "bg-muted text-muted-foreground"
                     }`}
                   >
-                    {sensitiveVisible ? "visível" : "oculto"}
+                    {sensitiveVisible ? "visivel" : "visivel"}
                   </Button>
                 </CardHeader>
                 <CardContent>
