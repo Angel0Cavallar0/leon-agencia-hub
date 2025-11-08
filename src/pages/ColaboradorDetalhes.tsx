@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
@@ -43,6 +50,26 @@ export default function ColaboradorDetalhes() {
   const [colaborador, setColaborador] = useState<EditableColaborador | null>(null);
   const [privateData, setPrivateData] = useState<PrivateData | null>(null);
   const [role, setRole] = useState<"user" | "supervisor" | "admin">("user");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+
+  const roleOptions = [
+    {
+      value: "admin" as const,
+      label: "Administrador",
+      description: "Acesso completo a todas as seções e configurações.",
+    },
+    {
+      value: "supervisor" as const,
+      label: "Supervisor",
+      description: "Pode acompanhar equipes e clientes designados.",
+    },
+    {
+      value: "user" as const,
+      label: "Usuário",
+      description: "Acesso restrito às atividades do próprio colaborador.",
+    },
+  ];
 
   useEffect(() => {
     if (id) {
@@ -52,6 +79,18 @@ export default function ColaboradorDetalhes() {
       }
     }
   }, [id, userRole]);
+
+  useEffect(() => {
+    if (!photoFile) {
+      setPhotoPreview(null);
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(photoFile);
+    setPhotoPreview(previewUrl);
+
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [photoFile]);
 
   const fetchColaborador = async () => {
     const { data, error } = await supabase
@@ -160,6 +199,11 @@ export default function ColaboradorDetalhes() {
     }
   };
 
+  const handlePhotoChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
+    setPhotoFile(file);
+  };
+
   if (!colaborador) {
     return (
       <Layout>
@@ -170,31 +214,68 @@ export default function ColaboradorDetalhes() {
     );
   }
 
+  const collaboratorInitials = `${(colaborador.nome || "").charAt(0)}${(colaborador.sobrenome || "").charAt(0)}`
+    .toUpperCase()
+    .trim() || (colaborador.nome || "").charAt(0).toUpperCase();
+
   return (
     <Layout>
-      <div className="space-y-6 w-full max-w-6xl mx-auto">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/colaboradores")}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              {colaborador.nome} {colaborador.sobrenome}
-            </h1>
-            <p className="text-muted-foreground">
-              {colaborador.cargo || "Sem cargo definido"}
-            </p>
-          </div>
-        </div>
-
+      <div className="w-full max-w-6xl space-y-6">
         <form onSubmit={handleUpdateColaborador} className="space-y-6">
-          <div className="grid gap-6 xl:grid-cols-[2fr,1fr]">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" size="icon" onClick={() => navigate("/colaboradores")}>
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">
+                  {colaborador.nome} {colaborador.sobrenome}
+                </h1>
+                <p className="text-muted-foreground">
+                  {colaborador.cargo || "Sem cargo definido"}
+                </p>
+              </div>
+            </div>
+            <Button type="submit" disabled={loading} className="min-w-[180px]">
+              {loading ? "Salvando..." : "Salvar Alterações"}
+            </Button>
+          </div>
+
+          <div className="grid gap-6 xl:grid-cols-[1.8fr,1.2fr]">
             <div className="space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle>Informações Principais</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="foto_colaborador">Foto do Colaborador</Label>
+                    <div className="flex items-center gap-4">
+                      <Avatar className="h-20 w-20 border border-muted bg-muted/40">
+                        {photoPreview ? (
+                          <AvatarImage src={photoPreview} alt={`Foto de ${colaborador.nome}`} />
+                        ) : (
+                          <AvatarFallback className="text-sm font-medium uppercase">
+                            {collaboratorInitials || "?"}
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
+                      <div className="flex-1 space-y-2">
+                        <Input
+                          id="foto_colaborador"
+                          type="file"
+                          accept="image/*"
+                          onChange={handlePhotoChange}
+                        />
+                        {photoFile && (
+                          <p className="text-sm text-muted-foreground">
+                            Arquivo selecionado: {photoFile.name}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="nome">Nome *</Label>
@@ -339,63 +420,7 @@ export default function ColaboradorDetalhes() {
               </Card>
             </div>
 
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Acesso e Permissões</CardTitle>
-                  <CardDescription>
-                    Defina o nível de acesso do colaborador
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <RadioGroup
-                    value={role}
-                    onValueChange={(value) => {
-                      setRole(value as "user" | "supervisor" | "admin");
-                      setColaborador({
-                        ...colaborador,
-                        admin: value === "admin",
-                        supervisor: value === "supervisor",
-                      });
-                    }}
-                  >
-                    <div className="flex items-center space-x-3 rounded-lg border p-3">
-                      <RadioGroupItem value="admin" id="admin" />
-                      <div>
-                        <Label htmlFor="admin" className="cursor-pointer">
-                          Administrador
-                        </Label>
-                        <p className="text-sm text-muted-foreground">
-                          Acesso completo a todas as seções e configurações.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-3 rounded-lg border p-3">
-                      <RadioGroupItem value="supervisor" id="supervisor" />
-                      <div>
-                        <Label htmlFor="supervisor" className="cursor-pointer">
-                          Supervisor
-                        </Label>
-                        <p className="text-sm text-muted-foreground">
-                          Pode acompanhar equipes e clientes designados.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-3 rounded-lg border p-3">
-                      <RadioGroupItem value="user" id="user" />
-                      <div>
-                        <Label htmlFor="user" className="cursor-pointer">
-                          Usuário
-                        </Label>
-                        <p className="text-sm text-muted-foreground">
-                          Acesso restrito às atividades do próprio colaborador.
-                        </p>
-                      </div>
-                    </div>
-                  </RadioGroup>
-                </CardContent>
-              </Card>
-
+            <div className="flex h-full flex-col gap-6">
               {userRole === "admin" && privateData && (
                 <Card className="border-primary/20">
                   <CardHeader>
@@ -449,12 +474,53 @@ export default function ColaboradorDetalhes() {
                   </CardContent>
                 </Card>
               )}
+
+              <Card className="mt-auto">
+                <CardHeader>
+                  <CardTitle>Acesso e Permissões</CardTitle>
+                  <CardDescription>
+                    Defina o nível de acesso do colaborador
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Select
+                    value={role}
+                    onValueChange={(value) => {
+                      setRole(value as "user" | "supervisor" | "admin");
+                      setColaborador({
+                        ...colaborador,
+                        admin: value === "admin",
+                        supervisor: value === "supervisor",
+                      });
+                    }}
+                  >
+                    <SelectTrigger aria-label="Selecione o nível de acesso">
+                      <SelectValue placeholder="Selecione um nível de acesso" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roleOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          <div className="flex flex-col gap-1">
+                            <span className="font-medium">{option.label}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {option.description}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <div className="rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
+                    {
+                      roleOptions.find((option) => option.value === role)?.description ||
+                        "Selecione um nível de acesso para ver a descrição."
+                    }
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
-
-          <Button type="submit" disabled={loading} className="w-full">
-            {loading ? "Salvando..." : "Salvar Alterações"}
-          </Button>
         </form>
       </div>
     </Layout>
