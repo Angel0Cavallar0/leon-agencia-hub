@@ -460,10 +460,7 @@ export default function ColaboradorDetalhes() {
             )}
 
             <Card className="order-3">
-              <CardHeader>
-                <CardTitle>Status do Colaborador</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+              <CardHeader className="flex flex-row items-center gap-4 space-y-0">
                 <Select
                   value={status}
                   onValueChange={(value) => {
@@ -477,7 +474,7 @@ export default function ColaboradorDetalhes() {
                     });
                   }}
                 >
-                  <SelectTrigger aria-label="Selecione o status do colaborador">
+                  <SelectTrigger aria-label="Selecione o status do colaborador" className="w-[220px]">
                     <SelectValue placeholder="Selecione o status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -493,14 +490,12 @@ export default function ColaboradorDetalhes() {
                     ))}
                   </SelectContent>
                 </Select>
-              </CardContent>
+                <CardTitle className="text-lg">Status do Colaborador</CardTitle>
+              </CardHeader>
             </Card>
 
             <Card className="order-4">
-              <CardHeader>
-                <CardTitle>Acesso e Permissões</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+              <CardHeader className="flex flex-row items-center gap-4 space-y-0">
                 <Select
                   value={role}
                   onValueChange={(value) => {
@@ -512,7 +507,7 @@ export default function ColaboradorDetalhes() {
                     });
                   }}
                 >
-                  <SelectTrigger aria-label="Selecione o nível de acesso">
+                  <SelectTrigger aria-label="Selecione o nível de acesso" className="w-[220px]">
                     <SelectValue placeholder="Selecione um nível de acesso" />
                   </SelectTrigger>
                   <SelectContent>
@@ -528,7 +523,8 @@ export default function ColaboradorDetalhes() {
                     ))}
                   </SelectContent>
                 </Select>
-              </CardContent>
+                <CardTitle className="text-lg">Acesso e Permissões</CardTitle>
+              </CardHeader>
             </Card>
           </div>
         </form>
