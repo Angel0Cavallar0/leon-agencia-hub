@@ -67,9 +67,7 @@ export default function ClienteDetalhes() {
   const fetchCliente = async () => {
     const { data, error } = await supabase
       .from("clientes_infos")
-      .select(
-        "id_cliente, nome_cliente, cnpj, segmento, nome_responsavel, data_inauguracao, data_contrato, cliente_ativo, gestao_trafego"
-      )
+      .select("*")
       .eq("id_cliente", id)
       .single();
 
@@ -117,7 +115,7 @@ export default function ClienteDetalhes() {
       ] as const;
 
       const payload = allowedFields.reduce((acc, key) => {
-        acc[key] = cliente[key] ?? null;
+        (acc as any)[key] = cliente[key] ?? null;
         return acc;
       }, {} as Database["public"]["Tables"]["clientes_infos"]["Update"]);
 

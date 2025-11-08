@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { PhoneInput } from "@/components/PhoneInput";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
@@ -33,9 +34,15 @@ export default function ColaboradorNovo() {
   });
 
   const [privateData, setPrivateData] = useState({
+    cpf: "",
+    rg: "",
+    endereco: "",
     email_pessoal: "",
-    whatsapp: "",
+    telefone_pessoal: "",
     data_aniversario: "",
+    contato_emergencia_nome: "",
+    contato_emergencia_grau: "",
+    contato_emergencia_telefone: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -59,12 +66,26 @@ export default function ColaboradorNovo() {
 
       if (colaboradorError) throw colaboradorError;
 
-      if (userRole === "admin" && (privateData.email_pessoal || privateData.whatsapp || privateData.data_aniversario)) {
+      if (userRole === "admin" && (privateData.email_pessoal || privateData.telefone_pessoal || privateData.data_aniversario || privateData.cpf || privateData.rg || privateData.endereco || privateData.contato_emergencia_nome)) {
+        const emergencyContact = privateData.contato_emergencia_nome || privateData.contato_emergencia_grau || privateData.contato_emergencia_telefone
+          ? JSON.stringify({
+              nome: privateData.contato_emergencia_nome,
+              grau: privateData.contato_emergencia_grau,
+              telefone: privateData.contato_emergencia_telefone,
+            })
+          : null;
+
         const { error: privateError } = await supabase
           .from("colaborador_private")
           .insert([{
             id_colaborador: colaboradorData.id_colaborador,
-            ...privateData,
+            email_pessoal: privateData.email_pessoal || null,
+            telefone_pessoal: privateData.telefone_pessoal || null,
+            data_aniversario: privateData.data_aniversario || null,
+            cpf: privateData.cpf || null,
+            rg: privateData.rg || null,
+            endereco: privateData.endereco || null,
+            contato_emergencia: emergencyContact,
           }]);
 
        if (privateError) {
@@ -329,15 +350,56 @@ export default function ColaboradorNovo() {
                         }
                       />
                     </div>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="cpf">CPF</Label>
+                        <Input
+                          id="cpf"
+                          value={privateData.cpf}
+                          placeholder="000.000.000-00"
+                          onChange={(e) =>
+                            setPrivateData({
+                              ...privateData,
+                              cpf: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="rg">RG</Label>
+                        <Input
+                          id="rg"
+                          value={privateData.rg}
+                          onChange={(e) =>
+                            setPrivateData({
+                              ...privateData,
+                              rg: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
                     <div className="space-y-2">
-                      <Label htmlFor="whatsapp">WhatsApp</Label>
+                      <Label htmlFor="endereco">Endereço Residencial</Label>
                       <Input
-                        id="whatsapp"
-                        value={privateData.whatsapp}
+                        id="endereco"
+                        value={privateData.endereco}
                         onChange={(e) =>
                           setPrivateData({
                             ...privateData,
-                            whatsapp: e.target.value,
+                            endereco: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="telefone_pessoal">Telefone Pessoal</Label>
+                      <PhoneInput
+                        value={privateData.telefone_pessoal}
+                        onChange={(value) =>
+                          setPrivateData({
+                            ...privateData,
+                            telefone_pessoal: value,
                           })
                         }
                       />
@@ -355,6 +417,51 @@ export default function ColaboradorNovo() {
                           })
                         }
                       />
+                    </div>
+                    <div className="border-t pt-4 mt-4">
+                      <h4 className="font-semibold mb-4">Contato de Emergência</h4>
+                      <div className="grid gap-4 md:grid-cols-3">
+                        <div className="space-y-2">
+                          <Label htmlFor="contato_emergencia_nome">Nome</Label>
+                          <Input
+                            id="contato_emergencia_nome"
+                            placeholder="Ex: Marcia"
+                            value={privateData.contato_emergencia_nome}
+                            onChange={(e) =>
+                              setPrivateData({
+                                ...privateData,
+                                contato_emergencia_nome: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="contato_emergencia_grau">Grau de Parentesco</Label>
+                          <Input
+                            id="contato_emergencia_grau"
+                            placeholder="Ex: Mãe"
+                            value={privateData.contato_emergencia_grau}
+                            onChange={(e) =>
+                              setPrivateData({
+                                ...privateData,
+                                contato_emergencia_grau: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="contato_emergencia_telefone">Telefone</Label>
+                          <PhoneInput
+                            value={privateData.contato_emergencia_telefone}
+                            onChange={(value) =>
+                              setPrivateData({
+                                ...privateData,
+                                contato_emergencia_telefone: value,
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

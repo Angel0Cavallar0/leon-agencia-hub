@@ -12,6 +12,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { PhoneInput } from "@/components/PhoneInput";
+import { formatPhoneDisplay } from "@/lib/phoneUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
@@ -40,14 +52,15 @@ export default function ColaboradorDetalhes() {
     | "colab_ativo"
     | "colab_ferias"
     | "colab_afastado"
+    | "colab_desligado"
     | "admin"
     | "supervisor"
+    | "foto_url"
   >;
-  type PrivateSupabaseData =
-    Pick<ColaboradorPrivate, "email_pessoal" | "whatsapp" | "data_aniversario"> &
-    Partial<ColaboradorPrivate> & {
-      contato_emergencia?: string | Record<string, string> | null;
-    };
+  type PrivateSupabaseData = Partial<ColaboradorPrivate> & {
+    contato_emergencia?: string | Record<string, string> | null;
+    telefone_pessoal?: string | null;
+  };
 
   type PrivateData = {
     cpf: string;
@@ -57,17 +70,19 @@ export default function ColaboradorDetalhes() {
     telefone_pessoal: string;
     email_pessoal: string;
     contato_emergencia_nome: string;
+    contato_emergencia_grau: string;
     contato_emergencia_telefone: string;
   };
 
   const [colaborador, setColaborador] = useState<EditableColaborador | null>(null);
   const [privateData, setPrivateData] = useState<PrivateData | null>(null);
   const [role, setRole] = useState<"user" | "supervisor" | "admin">("user");
-  const [status, setStatus] = useState<"ativo" | "ferias" | "afastado">("ativo");
+  const [status, setStatus] = useState<"ativo" | "ferias" | "afastado" | "desligado">("ativo");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [sensitiveVisible, setSensitiveVisible] = useState(true);
   const [availablePrivateFields, setAvailablePrivateFields] = useState<string[]>([]);
+  const [showDesligadoDialog, setShowDesligadoDialog] = useState(false);
 
   const statusOptions = [
     {
@@ -84,6 +99,11 @@ export default function ColaboradorDetalhes() {
       value: "afastado" as const,
       label: "Afastado",
       description: "Colaborador afastado temporariamente.",
+    },
+    {
+      value: "desligado" as const,
+      label: "Desligado",
+      description: "Colaborador desligado da empresa.",
     },
   ];
 
@@ -136,9 +156,7 @@ export default function ColaboradorDetalhes() {
   const fetchColaborador = async () => {
     const { data, error } = await supabase
       .from("colaborador")
-      .select(
-        "id_colaborador, nome, sobrenome, apelido, cargo, email_corporativo, id_clickup, id_slack, data_admissao, colab_ativo, colab_ferias, colab_afastado, admin, supervisor"
-      )
+      .select("*")
       .eq("id_colaborador", id)
       .single();
 
@@ -153,12 +171,17 @@ export default function ColaboradorDetalhes() {
       setColaborador(colaboradorData);
       setRole(colaboradorData.admin ? "admin" : colaboradorData.supervisor ? "supervisor" : "user");
       setStatus(
-        colaboradorData.colab_ferias
+        colaboradorData.colab_desligado
+          ? "desligado"
+          : colaboradorData.colab_ferias
           ? "ferias"
           : colaboradorData.colab_afastado
           ? "afastado"
           : "ativo"
       );
+      if (colaboradorData.foto_url) {
+        setPhotoPreview(colaboradorData.foto_url);
+      }
     }
   };
 
@@ -179,15 +202,17 @@ export default function ColaboradorDetalhes() {
 
     const emergencyValue = supabaseData.contato_emergencia;
     let emergencyName = "";
+    let emergencyGrau = "";
     let emergencyPhone = "";
 
     if (typeof emergencyValue === "string" && emergencyValue) {
       try {
         const parsed = JSON.parse(emergencyValue) as
-          | { nome?: string; telefone?: string }
+          | { nome?: string; grau?: string; telefone?: string }
           | undefined;
         if (parsed) {
           emergencyName = parsed.nome?.toString() || "";
+          emergencyGrau = parsed.grau?.toString() || "";
           emergencyPhone = parsed.telefone?.toString() || "";
         }
       } catch (error) {
@@ -196,19 +221,21 @@ export default function ColaboradorDetalhes() {
         emergencyPhone = phonePart || "";
       }
     } else if (emergencyValue && typeof emergencyValue === "object") {
-      const parsed = emergencyValue as { nome?: string; telefone?: string };
+      const parsed = emergencyValue as { nome?: string; grau?: string; telefone?: string };
       emergencyName = parsed.nome?.toString() || "";
+      emergencyGrau = parsed.grau?.toString() || "";
       emergencyPhone = parsed.telefone?.toString() || "";
     }
 
     setPrivateData({
-      cpf: (supabaseData.cpf as string) || "",
-      rg: (supabaseData.rg as string) || "",
+      cpf: supabaseData.cpf || "",
+      rg: supabaseData.rg || "",
       data_nascimento: supabaseData.data_aniversario || "",
-      endereco_residencial: (supabaseData.endereco as string) || "",
-      telefone_pessoal: supabaseData.whatsapp || "",
+      endereco_residencial: supabaseData.endereco || "",
+      telefone_pessoal: supabaseData.telefone_pessoal || "",
       email_pessoal: supabaseData.email_pessoal || "",
       contato_emergencia_nome: emergencyName,
+      contato_emergencia_grau: emergencyGrau,
       contato_emergencia_telefone: emergencyPhone,
     });
   };
@@ -234,12 +261,19 @@ export default function ColaboradorDetalhes() {
         "colab_ativo",
         "colab_ferias",
         "colab_afastado",
+        "colab_desligado",
+        "foto_url",
       ] as const;
 
       const payload = allowedFields.reduce((acc, key) => {
-        acc[key] = colaborador[key] ?? null;
+        (acc as any)[key] = colaborador[key] ?? null;
         return acc;
       }, {} as Database["public"]["Tables"]["colaborador"]["Update"]);
+
+      // Se está marcando como desligado, adiciona data
+      if (status === "desligado" && !colaborador.colab_desligado) {
+        payload.data_desligamento = new Date().toISOString();
+      }
 
       const { error: colaboradorError } = await supabase
         .from("colaborador")
@@ -254,9 +288,10 @@ export default function ColaboradorDetalhes() {
 
       if (userRole === "admin" && privateData) {
         const emergencyPayload =
-          privateData.contato_emergencia_nome || privateData.contato_emergencia_telefone
+          privateData.contato_emergencia_nome || privateData.contato_emergencia_grau || privateData.contato_emergencia_telefone
             ? JSON.stringify({
                 nome: privateData.contato_emergencia_nome,
+                grau: privateData.contato_emergencia_grau,
                 telefone: privateData.contato_emergencia_telefone,
               })
             : null;
@@ -266,7 +301,7 @@ export default function ColaboradorDetalhes() {
         } = {
           id_colaborador: id,
           email_pessoal: privateData.email_pessoal || null,
-          whatsapp: privateData.telefone_pessoal || null,
+          telefone_pessoal: privateData.telefone_pessoal || null,
           data_aniversario: privateData.data_nascimento || null,
         };
 
@@ -586,16 +621,15 @@ export default function ColaboradorDetalhes() {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="telefone_pessoal">Telefone Pessoal</Label>
-                        <Input
-                          id="telefone_pessoal"
+                        <PhoneInput
                           value={privateData.telefone_pessoal}
-                          className={inputSurfaceClasses}
-                          onChange={(e) =>
+                          onChange={(value) =>
                             setPrivateData({
                               ...privateData,
-                              telefone_pessoal: e.target.value,
+                              telefone_pessoal: value,
                             })
                           }
+                          className={inputSurfaceClasses}
                         />
                       </div>
                       <div className="space-y-2">
@@ -613,12 +647,13 @@ export default function ColaboradorDetalhes() {
                           }
                         />
                       </div>
-                      <div className="grid gap-4 md:col-span-2 md:grid-cols-2">
+                      <div className="grid gap-4 md:col-span-2 md:grid-cols-3">
                         <div className="space-y-2">
                           <Label htmlFor="contato_emergencia_nome">Nome do Contato de Emergência</Label>
                           <Input
                             id="contato_emergencia_nome"
                             value={privateData.contato_emergencia_nome}
+                            placeholder="Ex: Marcia"
                             className={inputSurfaceClasses}
                             onChange={(e) =>
                               setPrivateData({
@@ -629,19 +664,41 @@ export default function ColaboradorDetalhes() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="contato_emergencia_telefone">Telefone do Contato de Emergência</Label>
+                          <Label htmlFor="contato_emergencia_grau">Grau de Parentesco</Label>
                           <Input
-                            id="contato_emergencia_telefone"
-                            value={privateData.contato_emergencia_telefone}
+                            id="contato_emergencia_grau"
+                            value={privateData.contato_emergencia_grau}
+                            placeholder="Ex: Mãe"
                             className={inputSurfaceClasses}
                             onChange={(e) =>
                               setPrivateData({
                                 ...privateData,
-                                contato_emergencia_telefone: e.target.value,
+                                contato_emergencia_grau: e.target.value,
                               })
                             }
                           />
                         </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="contato_emergencia_telefone">Telefone</Label>
+                          <PhoneInput
+                            value={privateData.contato_emergencia_telefone}
+                            onChange={(value) =>
+                              setPrivateData({
+                                ...privateData,
+                                contato_emergencia_telefone: value,
+                              })
+                            }
+                            className={inputSurfaceClasses}
+                          />
+                        </div>
+                        {privateData.contato_emergencia_nome && privateData.contato_emergencia_grau && (
+                          <div className="md:col-span-3">
+                            <p className="text-sm text-muted-foreground">
+                              Exibição: {privateData.contato_emergencia_nome} - {privateData.contato_emergencia_grau}
+                              {privateData.contato_emergencia_telefone && ` • ${formatPhoneDisplay(privateData.contato_emergencia_telefone)}`}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -664,13 +721,21 @@ export default function ColaboradorDetalhes() {
                 <Select
                   value={status}
                   onValueChange={(value) => {
-                    const selectedStatus = value as "ativo" | "ferias" | "afastado";
+                    const selectedStatus = value as "ativo" | "ferias" | "afastado" | "desligado";
+                    
+                    // Se está marcando como desligado, mostra diálogo de confirmação
+                    if (selectedStatus === "desligado") {
+                      setShowDesligadoDialog(true);
+                      return;
+                    }
+                    
                     setStatus(selectedStatus);
                     setColaborador({
                       ...colaborador,
                       colab_ativo: selectedStatus === "ativo",
                       colab_ferias: selectedStatus === "ferias",
                       colab_afastado: selectedStatus === "afastado",
+                      colab_desligado: false,
                     });
                   }}
                 >
@@ -734,9 +799,88 @@ export default function ColaboradorDetalhes() {
                 </Select>
               </CardHeader>
             </Card>
+
+            <Card className={`order-4 ${cardSurfaceClasses}`}>
+              <CardHeader>
+                <CardTitle className="text-lg">Permissões e Acessos</CardTitle>
+                <CardDescription>Defina o nível de acesso do colaborador.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <Label className="text-foreground">Nível de Acesso</Label>
+                  <Select
+                    value={role}
+                    onValueChange={(value) => {
+                      const selectedRole = value as "admin" | "supervisor" | "user";
+                      setRole(selectedRole);
+                    }}
+                  >
+                    <SelectTrigger className={selectTriggerClasses} aria-label="Selecione o nível de acesso">
+                      <SelectValue placeholder="Selecione o nível" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roleOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          <div className="flex flex-col gap-1">
+                            <span className="font-medium">{option.label}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {option.description}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </form>
       </div>
+
+      {/* Dialog de confirmação para status "Desligado" */}
+      <AlertDialog open={showDesligadoDialog} onOpenChange={setShowDesligadoDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tem certeza que deseja desligar este colaborador?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p className="font-semibold text-destructive">
+                ⚠️ ATENÇÃO: Esta ação é crítica!
+              </p>
+              <p>
+                Após marcar como desligado, você terá <strong>10 minutos</strong> para reverter essa decisão
+                mudando o status de volta para "Ativo".
+              </p>
+              <p>
+                Após esse período, <strong>todas as contas e acessos do colaborador serão desativadas permanentemente</strong>.
+              </p>
+              <p className="text-sm text-muted-foreground mt-4">
+                Para cancelar a ação dentro do prazo de 10 minutos, basta alterar o status do colaborador para "Ativo" novamente.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setStatus("desligado");
+                setColaborador({
+                  ...colaborador,
+                  colab_ativo: false,
+                  colab_ferias: false,
+                  colab_afastado: false,
+                  colab_desligado: true,
+                });
+                setShowDesligadoDialog(false);
+                toast.warning("Colaborador marcado como desligado. Salve as alterações para confirmar.");
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Confirmar Desligamento
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 }

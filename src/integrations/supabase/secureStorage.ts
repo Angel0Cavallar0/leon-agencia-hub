@@ -1,6 +1,6 @@
 import type { SupabaseClientOptions } from "@supabase/supabase-js";
 
-type AuthStorage = NonNullable<SupabaseClientOptions["auth"]>["storage"];
+type AuthStorage = NonNullable<SupabaseClientOptions<any>["auth"]>["storage"];
 
 class InMemoryAuthStorage implements AuthStorage {
   private store = new Map<string, string>();

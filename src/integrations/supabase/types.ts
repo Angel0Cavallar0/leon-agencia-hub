@@ -288,12 +288,15 @@ export type Database = {
           cargo: string | null
           colab_afastado: boolean | null
           colab_ativo: boolean | null
+          colab_desligado: boolean | null
           colab_ferias: boolean | null
           data_admissao: string | null
           data_aniversario: string | null
+          data_desligamento: string | null
           date_created: string | null
           email_corporativo: string | null
           email_pessoal: string | null
+          foto_url: string | null
           id_clickup: string | null
           id_colaborador: string
           id_slack: string | null
@@ -309,12 +312,15 @@ export type Database = {
           cargo?: string | null
           colab_afastado?: boolean | null
           colab_ativo?: boolean | null
+          colab_desligado?: boolean | null
           colab_ferias?: boolean | null
           data_admissao?: string | null
           data_aniversario?: string | null
+          data_desligamento?: string | null
           date_created?: string | null
           email_corporativo?: string | null
           email_pessoal?: string | null
+          foto_url?: string | null
           id_clickup?: string | null
           id_colaborador?: string
           id_slack?: string | null
@@ -330,12 +336,15 @@ export type Database = {
           cargo?: string | null
           colab_afastado?: boolean | null
           colab_ativo?: boolean | null
+          colab_desligado?: boolean | null
           colab_ferias?: boolean | null
           data_admissao?: string | null
           data_aniversario?: string | null
+          data_desligamento?: string | null
           date_created?: string | null
           email_corporativo?: string | null
           email_pessoal?: string | null
+          foto_url?: string | null
           id_clickup?: string | null
           id_colaborador?: string
           id_slack?: string | null
@@ -349,28 +358,43 @@ export type Database = {
       }
       colaborador_private: {
         Row: {
+          contato_emergencia: Json | null
+          cpf: string | null
           created_at: string | null
           data_aniversario: string | null
           email_pessoal: string | null
+          endereco: string | null
+          foto_url: string | null
           id_colaborador: string
+          rg: string | null
+          telefone_pessoal: string | null
           updated_at: string | null
-          whatsapp: string | null
         }
         Insert: {
+          contato_emergencia?: Json | null
+          cpf?: string | null
           created_at?: string | null
           data_aniversario?: string | null
           email_pessoal?: string | null
+          endereco?: string | null
+          foto_url?: string | null
           id_colaborador: string
+          rg?: string | null
+          telefone_pessoal?: string | null
           updated_at?: string | null
-          whatsapp?: string | null
         }
         Update: {
+          contato_emergencia?: Json | null
+          cpf?: string | null
           created_at?: string | null
           data_aniversario?: string | null
           email_pessoal?: string | null
+          endereco?: string | null
+          foto_url?: string | null
           id_colaborador?: string
+          rg?: string | null
+          telefone_pessoal?: string | null
           updated_at?: string | null
-          whatsapp?: string | null
         }
         Relationships: [
           {
@@ -543,6 +567,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin: { Args: never; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "supervisor" | "user"
