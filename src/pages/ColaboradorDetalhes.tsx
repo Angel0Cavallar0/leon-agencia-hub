@@ -23,7 +23,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { PhoneInput } from "@/components/PhoneInput";
-import { formatPhoneDisplay } from "@/lib/phoneUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
@@ -141,10 +140,7 @@ export default function ColaboradorDetalhes() {
   }, [id, userRole]);
 
   useEffect(() => {
-    if (!photoFile) {
-      setPhotoPreview(null);
-      return;
-    }
+    if (!photoFile) return;
 
     const previewUrl = URL.createObjectURL(photoFile);
     setPhotoPreview(previewUrl);
@@ -244,6 +240,41 @@ export default function ColaboradorDetalhes() {
         throw new Error("Colaborador não encontrado");
       }
 
+      let updatedFotoUrl = colaborador.foto_url ?? null;
+
+      if (photoFile) {
+        const fileExtension = photoFile.name.split(".").pop() || "jpg";
+        const uniqueFileName = `${colaborador.id_colaborador || id}-${Date.now()}.${fileExtension}`;
+        const filePath = `fotos_colaboradores/${uniqueFileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("imagens")
+          .upload(filePath, photoFile, {
+            cacheControl: "3600",
+            upsert: true,
+            contentType: photoFile.type,
+          });
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        const { data: publicUrlData } = supabase.storage
+          .from("imagens")
+          .getPublicUrl(filePath);
+
+        if (!publicUrlData?.publicUrl) {
+          throw new Error("Não foi possível gerar a URL pública da foto do colaborador");
+        }
+
+        updatedFotoUrl = publicUrlData.publicUrl;
+      }
+
+      const updatedColaborador: EditableColaborador = {
+        ...colaborador,
+        foto_url: updatedFotoUrl,
+      };
+
       const allowedFields = [
         "nome",
         "sobrenome",
@@ -261,7 +292,7 @@ export default function ColaboradorDetalhes() {
       ] as const;
 
       const payload = allowedFields.reduce((acc, key) => {
-        (acc as any)[key] = colaborador[key] ?? null;
+        (acc as any)[key] = updatedColaborador[key] ?? null;
         return acc;
       }, {} as Database["public"]["Tables"]["colaborador"]["Update"]);
 
@@ -280,6 +311,12 @@ export default function ColaboradorDetalhes() {
         .eq("id_colaborador", id);
 
       if (colaboradorError) throw colaboradorError;
+
+      if (photoFile) {
+        setColaborador(updatedColaborador);
+        setPhotoFile(null);
+        setPhotoPreview(updatedFotoUrl);
+      }
 
       if (userRole === "admin" && privateData) {
         const emergencyPayload =
@@ -412,11 +449,6 @@ export default function ColaboradorDetalhes() {
                     >
                       ALTERAR FOTO
                     </Button>
-                    {photoFile && (
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        {photoFile.name}
-                      </p>
-                    )}
                   </div>
                 </div>
                 <div className="grid flex-1 gap-4 md:grid-cols-2">
@@ -673,13 +705,6 @@ export default function ColaboradorDetalhes() {
                             />
                           </div>
                         </div>
-                        {(privateData.contato_emergencia_nome || privateData.contato_emergencia_telefone) && (
-                          <p className="text-sm text-muted-foreground">
-                            Exibição: {privateData.contato_emergencia_nome || "Não informado"}
-                            {privateData.contato_emergencia_telefone &&
-                              ` • ${formatPhoneDisplay(privateData.contato_emergencia_telefone)}`}
-                          </p>
-                        )}
                       </div>
                     </div>
                   ) : (
