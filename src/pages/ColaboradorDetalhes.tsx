@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -308,7 +308,7 @@ export default function ColaboradorDetalhes() {
       setAvailablePrivateFields([]);
       setPrivateLoading(false);
     }
-  }, [collaboratorId, canAccessSensitive, id, navigate]);
+  }, [collaboratorId, canAccessSensitive, fetchColaborador, fetchPrivateData, id, navigate]);
 
   useEffect(() => {
     if (!canAccessSensitive) {
@@ -330,7 +330,11 @@ export default function ColaboradorDetalhes() {
     return () => URL.revokeObjectURL(previewUrl);
   }, [photoFile]);
 
-  const fetchColaborador = async () => {
+  const fetchColaborador = useCallback(async () => {
+    if (!collaboratorId) {
+      return;
+    }
+
     const { data, error } = await supabase
       .from("colaborador")
       .select(
@@ -359,9 +363,13 @@ export default function ColaboradorDetalhes() {
           : "desligado"
       );
     }
-  };
+  }, [collaboratorId]);
 
-  const fetchPrivateData = async () => {
+  const fetchPrivateData = useCallback(async () => {
+    if (!collaboratorId) {
+      return;
+    }
+
     setPrivateLoading(true);
     const { data, error } = await supabase
       .from("colaborador_private")
@@ -413,7 +421,7 @@ export default function ColaboradorDetalhes() {
       contato_emergencia_telefone: emergencyPhone,
     });
     setPrivateLoading(false);
-  };
+  }, [collaboratorId]);
 
   const handleUpdateColaborador = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -499,9 +507,10 @@ export default function ColaboradorDetalhes() {
       }
 
       toast.success("Colaborador atualizado com sucesso!");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erro ao atualizar colaborador:", error);
-      toast.error(error.message || "Erro ao atualizar colaborador");
+      const message = error instanceof Error ? error.message : "Erro ao atualizar colaborador";
+      toast.error(message);
     } finally {
       setLoading(false);
     }
