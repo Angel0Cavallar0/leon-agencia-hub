@@ -29,6 +29,7 @@ export default function ColaboradorNovo() {
     colab_ativo: true,
     colab_ferias: false,
     colab_afastado: false,
+    colab_desligado: false,
     role: "user" as "user" | "supervisor" | "admin",
   });
 

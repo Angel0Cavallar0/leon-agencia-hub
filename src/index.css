@@ -106,6 +106,13 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+    background-color: hsl(var(--background));
+    background-image:
+      radial-gradient(circle at top, hsl(var(--primary) / 0.18), transparent 60%),
+      radial-gradient(circle at bottom, hsl(var(--secondary) / 0.18), transparent 55%),
+      linear-gradient(160deg, rgba(2, 6, 23, 0.95), rgba(15, 23, 42, 0.92));
+    background-attachment: fixed;
+    background-size: cover;
   }
 }

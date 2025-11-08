@@ -40,7 +40,8 @@ export default function ClickupTarefas() {
       supabase.from("clientes_infos").select("id_cliente, nome_cliente"),
       supabase
         .from("colaborador")
-        .select("id_clickup, nome, sobrenome"),
+        .select("id_clickup, nome, sobrenome")
+        .eq("colab_desligado", false),
       supabase
         .from("clientes_pastas_clickup")
         .select("id_pasta, id_cliente, nome_cliente"),

@@ -28,7 +28,7 @@ export default function Colaboradores() {
     const { data, error } = await supabase
       .from("colaborador")
       .select(
-        "id_colaborador, nome, sobrenome, apelido, cargo, email_corporativo, colab_ferias, colab_afastado, colab_ativo, id_clickup"
+        "id_colaborador, nome, sobrenome, apelido, cargo, email_corporativo, colab_ferias, colab_afastado, colab_ativo, colab_desligado, id_clickup"
       )
       .order("nome", { ascending: true });
 
@@ -94,7 +94,11 @@ export default function Colaboradores() {
                   <TableCell>{colab.cargo}</TableCell>
                   <TableCell>{colab.email_corporativo}</TableCell>
                   <TableCell>
-                    {colab.colab_ferias ? (
+                    {colab.colab_desligado ? (
+                      <Badge className="border border-white/20 bg-slate-900 text-slate-100 dark:border-slate-100/20 dark:bg-slate-950">
+                        Desligado
+                      </Badge>
+                    ) : colab.colab_ferias ? (
                       <Badge variant="secondary">Férias</Badge>
                     ) : colab.colab_afastado ? (
                       <Badge variant="destructive">Afastado</Badge>

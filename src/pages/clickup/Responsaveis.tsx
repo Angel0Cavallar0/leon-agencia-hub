@@ -60,6 +60,7 @@ export default function ClickupResponsaveis() {
           .from("colaborador")
           .select("id_clickup, nome, sobrenome, apelido")
           .eq("colab_ativo", true)
+          .eq("colab_desligado", false)
           .order("nome", { ascending: true }),
       ]);
 

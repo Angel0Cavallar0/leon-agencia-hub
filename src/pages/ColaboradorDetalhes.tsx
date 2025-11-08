@@ -40,6 +40,7 @@ export default function ColaboradorDetalhes() {
     | "colab_ativo"
     | "colab_ferias"
     | "colab_afastado"
+    | "colab_desligado"
     | "admin"
     | "supervisor"
   >;
@@ -63,7 +64,8 @@ export default function ColaboradorDetalhes() {
   const [colaborador, setColaborador] = useState<EditableColaborador | null>(null);
   const [privateData, setPrivateData] = useState<PrivateData | null>(null);
   const [role, setRole] = useState<"user" | "supervisor" | "admin">("user");
-  const [status, setStatus] = useState<"ativo" | "ferias" | "afastado">("ativo");
+  type StatusValue = "ativo" | "ferias" | "afastado" | "desligado";
+  const [status, setStatus] = useState<StatusValue>("ativo");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [sensitiveVisible, setSensitiveVisible] = useState(true);
@@ -84,6 +86,12 @@ export default function ColaboradorDetalhes() {
       value: "afastado" as const,
       label: "Afastado",
       description: "Colaborador afastado temporariamente.",
+    },
+    {
+      value: "desligado" as const,
+      label: "Desligado",
+      description:
+        "Desativa todas as contas após 10 minutos. Reverta para ativo antes desse prazo para cancelar.",
     },
   ];
 
@@ -137,7 +145,7 @@ export default function ColaboradorDetalhes() {
     const { data, error } = await supabase
       .from("colaborador")
       .select(
-        "id_colaborador, nome, sobrenome, apelido, cargo, email_corporativo, id_clickup, id_slack, data_admissao, colab_ativo, colab_ferias, colab_afastado, admin, supervisor"
+        "id_colaborador, nome, sobrenome, apelido, cargo, email_corporativo, id_clickup, id_slack, data_admissao, colab_ativo, colab_ferias, colab_afastado, colab_desligado, admin, supervisor"
       )
       .eq("id_colaborador", id)
       .single();
@@ -153,7 +161,9 @@ export default function ColaboradorDetalhes() {
       setColaborador(colaboradorData);
       setRole(colaboradorData.admin ? "admin" : colaboradorData.supervisor ? "supervisor" : "user");
       setStatus(
-        colaboradorData.colab_ferias
+        colaboradorData.colab_desligado
+          ? "desligado"
+          : colaboradorData.colab_ferias
           ? "ferias"
           : colaboradorData.colab_afastado
           ? "afastado"
@@ -234,6 +244,7 @@ export default function ColaboradorDetalhes() {
         "colab_ativo",
         "colab_ferias",
         "colab_afastado",
+        "colab_desligado",
       ] as const;
 
       const payload = allowedFields.reduce((acc, key) => {
@@ -664,14 +675,38 @@ export default function ColaboradorDetalhes() {
                 <Select
                   value={status}
                   onValueChange={(value) => {
-                    const selectedStatus = value as "ativo" | "ferias" | "afastado";
+                    if (!colaborador) return;
+                    const selectedStatus = value as StatusValue;
+
+                    if (
+                      selectedStatus === "desligado" &&
+                      status !== "desligado"
+                    ) {
+                      const confirmed = window.confirm(
+                        "Tem certeza que deseja marcar este colaborador como desligado? Após 10 minutos todas as contas serão desativadas permanentemente. Para cancelar, atualize o status para ativo antes do prazo."
+                      );
+
+                      if (!confirmed) {
+                        return;
+                      }
+
+                      toast.warning(
+                        "O colaborador será desligado em 10 minutos caso não seja reativado."
+                      );
+                    }
+
                     setStatus(selectedStatus);
-                    setColaborador({
-                      ...colaborador,
-                      colab_ativo: selectedStatus === "ativo",
-                      colab_ferias: selectedStatus === "ferias",
-                      colab_afastado: selectedStatus === "afastado",
-                    });
+                    setColaborador((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            colab_ativo: selectedStatus === "ativo",
+                            colab_ferias: selectedStatus === "ferias",
+                            colab_afastado: selectedStatus === "afastado",
+                            colab_desligado: selectedStatus === "desligado",
+                          }
+                        : prev
+                    );
                   }}
                 >
                   <SelectTrigger
@@ -694,6 +729,12 @@ export default function ColaboradorDetalhes() {
                   </SelectContent>
                 </Select>
               </CardHeader>
+              {status === "desligado" && (
+                <div className="px-6 pb-6 text-sm text-warning-foreground/90">
+                  As contas vinculadas serão desativadas permanentemente em até 10 minutos. Reative o colaborador antes desse prazo
+                  para cancelar o processo de desligamento.
+                </div>
+              )}
             </Card>
 
             <Card className={`order-4 ${cardSurfaceClasses}`}>

@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -16,17 +16,33 @@ export default function Configuracoes() {
     setPrimaryColor, 
     secondaryColor,
     setSecondaryColor,
-    logoUrl, 
-    setLogoUrl, 
-    faviconUrl, 
+    logoUrl,
+    setLogoUrl,
+    secondaryLogoUrl,
+    setSecondaryLogoUrl,
+    faviconUrl,
     setFaviconUrl,
-    saveAsGlobal 
+    saveAsGlobal
   } = useTheme();
   const [tempLogoUrl, setTempLogoUrl] = useState(logoUrl);
+  const [tempSecondaryLogoUrl, setTempSecondaryLogoUrl] = useState(secondaryLogoUrl);
   const [tempFaviconUrl, setTempFaviconUrl] = useState(faviconUrl);
+
+  useEffect(() => {
+    setTempLogoUrl(logoUrl);
+  }, [logoUrl]);
+
+  useEffect(() => {
+    setTempSecondaryLogoUrl(secondaryLogoUrl);
+  }, [secondaryLogoUrl]);
+
+  useEffect(() => {
+    setTempFaviconUrl(faviconUrl);
+  }, [faviconUrl]);
 
   const handleSaveUrls = () => {
     setLogoUrl(tempLogoUrl);
+    setSecondaryLogoUrl(tempSecondaryLogoUrl);
     setFaviconUrl(tempFaviconUrl);
     toast.success("Configurações salvas com sucesso!");
   };
@@ -99,6 +115,15 @@ export default function Configuracoes() {
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="secondary-logo">URL da Logo Secundária</Label>
+              <Input
+                id="secondary-logo"
+                placeholder="https://exemplo.com/logo-secundaria.png"
+                value={tempSecondaryLogoUrl}
+                onChange={(e) => setTempSecondaryLogoUrl(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="favicon">URL do Favicon</Label>
               <Input
                 id="favicon"
@@ -162,7 +187,7 @@ export default function Configuracoes() {
             </div>
 
             <Button onClick={saveAsGlobal} variant="outline">
-              Salvar como padrão para todos os usuários
+              Salvar aparência como padrão para todos os usuários
             </Button>
           </CardContent>
         </Card>

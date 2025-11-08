@@ -30,9 +30,12 @@ export function Sidebar() {
   const location = useLocation();
 
   return (
-    <aside className="w-64 bg-sidebar border-r border-sidebar-border flex h-full flex-col">
+    <aside
+      className="relative z-20 flex h-full w-64 flex-col border-r border-white/10 bg-sidebar shadow-2xl backdrop-blur-xl"
+      style={{ backgroundColor: "hsl(var(--sidebar-background) / 0.92)" }}
+    >
       {/* Logo */}
-      <div className="p-6 border-b border-sidebar-border">
+      <div className="border-b border-white/10 p-6">
         {logoUrl ? (
           <img src={logoUrl} alt="Logo" className="h-10 w-auto" />
         ) : (
@@ -101,7 +104,7 @@ export function Sidebar() {
       </nav>
 
       {/* Footer com Logs, Configurações e Sair */}
-      <div className="p-4 border-t border-sidebar-border space-y-2">
+      <div className="space-y-2 border-t border-white/10 p-4">
         {userRole === "admin" && (
           <>
             <NavLink
