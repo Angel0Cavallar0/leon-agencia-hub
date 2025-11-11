@@ -1,4 +1,4 @@
-import { FileText, LayoutDashboard, Users, UserCog, MousePointerClick, LogOut, Settings } from "lucide-react";
+import { FileText, LayoutDashboard, Users, UserCog, MousePointerClick, LogOut, Settings, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -6,14 +6,26 @@ import { useState } from "react";
 import { NavLink } from "./NavLink";
 import { useLocation } from "react-router-dom";
 
-const menuItems = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
-  { icon: Users, label: "Clientes", path: "/clientes" },
-  { icon: UserCog, label: "Colaboradores", path: "/colaboradores" },
+type AllowedRole = "admin" | "supervisor" | "user";
+
+interface MenuItem {
+  icon: typeof LayoutDashboard;
+  label: string;
+  path: string;
+  roles?: AllowedRole[];
+  submenu?: { label: string; path: string }[];
+}
+
+const menuItems: MenuItem[] = [
+  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard", roles: ["admin", "supervisor"] },
+  { icon: Users, label: "Clientes", path: "/clientes", roles: ["admin", "supervisor"] },
+  { icon: UserCog, label: "Colaboradores", path: "/colaboradores", roles: ["admin", "supervisor"] },
+  { icon: MessageCircle, label: "WhatsApp", path: "/whatsapp", roles: ["admin", "supervisor"] },
   {
     icon: MousePointerClick,
     label: "ClickUp",
     path: "/clickup",
+    roles: ["admin", "supervisor"],
     submenu: [
       { label: "Responsáveis", path: "/clickup/responsaveis" },
       { label: "Tarefas", path: "/clickup/tarefas" },
@@ -43,8 +55,12 @@ export function Sidebar() {
       {/* Menu Items */}
       <nav className="flex-1 p-4 space-y-2">
         {menuItems.map((item) => {
+          if (item.roles && (!userRole || !item.roles.includes(userRole))) {
+            return null;
+          }
+
           const Icon = item.icon;
-          const isActive = location.pathname === item.path || 
+          const isActive = location.pathname === item.path ||
             (item.submenu && item.submenu.some(sub => location.pathname === sub.path));
 
           if (item.submenu) {
