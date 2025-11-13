@@ -284,6 +284,10 @@ export default function Perfil() {
 
   const formattedAdmission = useMemo(() => formatDate(colaborador.data_admissao), [colaborador.data_admissao]);
   const formattedPersonalBirthday = useMemo(() => formatDate(privateData.data_nascimento), [privateData.data_nascimento]);
+  const formattedWppAccess = useMemo(() => {
+    if (wppAccess === null || wppAccess === undefined) return "Não informado";
+    return wppAccess ? "Sim" : "Não";
+  }, [wppAccess]);
   const formattedCrmAccess = useMemo(() => {
     if (crmAccess === null || crmAccess === undefined) return "Não informado";
     return crmAccess ? "Sim" : "Não";
@@ -342,7 +346,7 @@ export default function Perfil() {
         ) : (
           <div className="flex flex-col gap-6">
             <Card>
-              <CardContent className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+              <CardContent className="flex flex-col gap-6 p-6 md:flex-row md:items-center md:justify-between md:p-8">
                 <div className="flex items-center gap-4">
                   <Avatar className="h-20 w-20">
                     {colaborador.foto_url ? (
@@ -402,6 +406,10 @@ export default function Perfil() {
                   <div className="space-y-1">
                     <dt className="text-sm font-medium text-muted-foreground">WhatsApp</dt>
                     <dd className="text-sm font-semibold text-foreground">{formatValue(colaborador.whatsapp)}</dd>
+                  </div>
+                  <div className="space-y-1">
+                    <dt className="text-sm font-medium text-muted-foreground">Permissão WhatsApp</dt>
+                    <dd className="text-sm font-semibold text-foreground">{formattedWppAccess}</dd>
                   </div>
                   <div className="space-y-1">
                     <dt className="text-sm font-medium text-muted-foreground">Data de admissão</dt>

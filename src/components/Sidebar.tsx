@@ -203,7 +203,6 @@ export function Sidebar() {
             </Avatar>
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-sidebar-foreground">{displayName}</p>
-              <p className="truncate text-xs text-muted-foreground">Ver meu perfil</p>
             </div>
           </button>
           <div className="h-px bg-sidebar-border" />
