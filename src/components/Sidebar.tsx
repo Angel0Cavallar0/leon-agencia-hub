@@ -186,7 +186,7 @@ export function Sidebar() {
 
       {/* Footer com Logs, Configurações e Sair */}
       <div className="px-4 py-3 border-t border-sidebar-border">
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-4">
           <button
             type="button"
             onClick={() => navigate("/perfil")}
@@ -203,9 +203,10 @@ export function Sidebar() {
             </Avatar>
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-sidebar-foreground">{displayName}</p>
-              <p className="truncate text-xs text-muted-foreground">Editar meus dados</p>
+              <p className="truncate text-xs text-muted-foreground">Ver meu perfil</p>
             </div>
           </button>
+          <div className="h-px bg-sidebar-border" />
           <TooltipProvider delayDuration={0}>
             <div className="flex items-center justify-center gap-3">
               {userRole === "admin" && (

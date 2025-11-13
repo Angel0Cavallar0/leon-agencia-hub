@@ -1,14 +1,11 @@
-import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 import { logger } from "@/lib/logger";
 
@@ -21,6 +18,15 @@ const emptyColaborador = {
   email_corporativo: "",
   whatsapp: "",
   foto_url: null as string | null,
+  data_admissao: null as string | null,
+  data_aniversario: null as string | null,
+  data_desligamento: null as string | null,
+  colab_ativo: null as boolean | null,
+  colab_ferias: null as boolean | null,
+  colab_afastado: null as boolean | null,
+  colab_desligado: null as boolean | null,
+  admin: null as boolean | null,
+  supervisor: null as boolean | null,
 };
 
 const emptyPrivateData = {
@@ -34,34 +40,30 @@ const emptyPrivateData = {
   contato_emergencia_telefone: "",
 };
 
-type ColaboradorFormState = typeof emptyColaborador;
-type PrivateFormState = typeof emptyPrivateData;
+type ColaboradorState = typeof emptyColaborador;
+type PrivateDataState = typeof emptyPrivateData;
 
 type ColaboradorRow = Database["public"]["Tables"]["colaborador"]["Row"];
 type ColaboradorPrivateRow = Database["public"]["Tables"]["colaborador_private"]["Row"];
 
-function normalizeDate(value: string | null | undefined) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value.split("T")[0] ?? "";
-  }
-  return date.toISOString().split("T")[0] ?? "";
-}
+type EmergencyContact = {
+  nome: string;
+  telefone: string;
+};
 
-function parseEmergencyContact(value: ColaboradorPrivateRow["contato_emergencia"]) {
+function parseEmergencyContact(value: ColaboradorPrivateRow["contato_emergencia"]): EmergencyContact {
   if (!value) {
     return { nome: "", telefone: "" };
   }
 
   if (typeof value === "string") {
     try {
-      const parsed = JSON.parse(value);
+      const parsed = JSON.parse(value) as EmergencyContact;
       return {
         nome: typeof parsed?.nome === "string" ? parsed.nome : "",
         telefone: typeof parsed?.telefone === "string" ? parsed.telefone : "",
       };
-    } catch (error) {
+    } catch {
       const [nome, telefone] = value.split("|").map((part) => part.trim());
       return { nome: nome ?? value, telefone: telefone ?? "" };
     }
@@ -77,20 +79,30 @@ function parseEmergencyContact(value: ColaboradorPrivateRow["contato_emergencia"
   return { nome: "", telefone: "" };
 }
 
-function buildEmergencyPayload({ nome, telefone }: { nome: string; telefone: string }) {
-  if (!nome && !telefone) return null;
-  return JSON.stringify({ nome, telefone });
+function formatDate(value: string | null | undefined) {
+  if (!value) return "Não informado";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    const normalized = value.split("T")[0];
+    return normalized && normalized.length > 0 ? normalized.split("-").reverse().join("/") : "Não informado";
+  }
+
+  return new Intl.DateTimeFormat("pt-BR").format(date);
+}
+
+function formatValue(value: string | null | undefined) {
+  if (!value) return "Não informado";
+  const trimmed = value.toString().trim();
+  return trimmed.length > 0 ? trimmed : "Não informado";
 }
 
 export default function Perfil() {
   const { user } = useAuth();
-  const [colaborador, setColaborador] = useState<ColaboradorFormState>(emptyColaborador);
-  const [privateData, setPrivateData] = useState<PrivateFormState>(emptyPrivateData);
+  const [colaborador, setColaborador] = useState<ColaboradorState>({ ...emptyColaborador });
+  const [privateData, setPrivateData] = useState<PrivateDataState>({ ...emptyPrivateData });
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
   const displayName = useMemo(() => {
     if (colaborador.apelido) return colaborador.apelido;
@@ -110,23 +122,32 @@ export default function Perfil() {
     return "?";
   }, [displayName]);
 
-  useEffect(() => {
-    if (!photoFile) return;
+  const statusBadges = useMemo(
+    () => [
+      { label: "Ativo", active: colaborador.colab_ativo === true },
+      { label: "Férias", active: colaborador.colab_ferias === true },
+      { label: "Afastado", active: colaborador.colab_afastado === true },
+      { label: "Desligado", active: colaborador.colab_desligado === true },
+    ],
+    [colaborador.colab_afastado, colaborador.colab_ativo, colaborador.colab_desligado, colaborador.colab_ferias]
+  );
 
-    const preview = URL.createObjectURL(photoFile);
-    setPhotoPreview(preview);
+  const accessBadges = useMemo(
+    () => [
+      { label: "Administrador", active: colaborador.admin === true },
+      { label: "Supervisor", active: colaborador.supervisor === true },
+    ],
+    [colaborador.admin, colaborador.supervisor]
+  );
 
-    return () => {
-      URL.revokeObjectURL(preview);
-    };
-  }, [photoFile]);
+  const hasElevatedAccess = useMemo(() => accessBadges.some((badge) => badge.active), [accessBadges]);
 
   const loadProfile = useCallback(async () => {
     if (!user?.id) {
-      setLoading(false);
       setColaborador({ ...emptyColaborador });
       setPrivateData({ ...emptyPrivateData });
       setError("Usuário não autenticado.");
+      setLoading(false);
       return;
     }
 
@@ -147,7 +168,6 @@ export default function Perfil() {
       if (!colaboradorData) {
         setColaborador({ ...emptyColaborador });
         setPrivateData({ ...emptyPrivateData });
-        setPhotoPreview(null);
         setError("Não encontramos um cadastro de colaborador vinculado a este usuário.");
         return;
       }
@@ -163,8 +183,16 @@ export default function Perfil() {
         email_corporativo: colaboradorRow.email_corporativo ?? "",
         whatsapp: colaboradorRow.whatsapp ?? "",
         foto_url: colaboradorRow.foto_url ?? null,
+        data_admissao: colaboradorRow.data_admissao ?? null,
+        data_aniversario: colaboradorRow.data_aniversario ?? null,
+        data_desligamento: colaboradorRow.data_desligamento ?? null,
+        colab_ativo: colaboradorRow.colab_ativo ?? null,
+        colab_ferias: colaboradorRow.colab_ferias ?? null,
+        colab_afastado: colaboradorRow.colab_afastado ?? null,
+        colab_desligado: colaboradorRow.colab_desligado ?? null,
+        admin: colaboradorRow.admin ?? null,
+        supervisor: colaboradorRow.supervisor ?? null,
       });
-      setPhotoPreview(colaboradorRow.foto_url ?? null);
 
       if (colaboradorRow.id_colaborador) {
         const { data: privateRow, error: privateError } = await supabase
@@ -186,7 +214,7 @@ export default function Perfil() {
             telefone_pessoal: privateDataRow.telefone_pessoal ?? "",
             cpf: privateDataRow.cpf ?? "",
             rg: privateDataRow.rg ?? "",
-            data_nascimento: normalizeDate(privateDataRow.data_aniversario),
+            data_nascimento: privateDataRow.data_aniversario ?? "",
             endereco: privateDataRow.endereco ?? "",
             contato_emergencia_nome: emergency.nome,
             contato_emergencia_telefone: emergency.telefone,
@@ -194,6 +222,8 @@ export default function Perfil() {
         } else {
           setPrivateData({ ...emptyPrivateData });
         }
+      } else {
+        setPrivateData({ ...emptyPrivateData });
       }
     } catch (loadError) {
       console.error(loadError);
@@ -210,129 +240,23 @@ export default function Perfil() {
     loadProfile();
   }, [loadProfile]);
 
-  const handleColaboradorChange = (field: keyof Omit<ColaboradorFormState, "id_colaborador" | "foto_url">) =>
-    (event: ChangeEvent<HTMLInputElement>) => {
-      const value = event.target.value;
-      setColaborador((prev) => ({ ...prev, [field]: value }));
-    };
+  const fullName = useMemo(() => {
+    const parts = [colaborador.nome, colaborador.sobrenome].filter(Boolean);
+    return parts.length > 0 ? parts.join(" ") : "Não informado";
+  }, [colaborador.nome, colaborador.sobrenome]);
 
-  const handlePrivateChange = (field: keyof PrivateFormState) =>
-    (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      const value = event.target.value;
-      setPrivateData((prev) => ({ ...prev, [field]: value }));
-    };
-
-  const handlePhotoChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    setPhotoFile(file ?? null);
-  };
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    if (!colaborador.id_colaborador) {
-      toast.error("Não foi possível identificar o colaborador vinculado a este usuário.");
-      return;
-    }
-
-    setSaving(true);
-
-    try {
-      let updatedPhotoUrl = colaborador.foto_url ?? null;
-
-      if (photoFile) {
-        const fileExtension = photoFile.name.split(".").pop() || "jpg";
-        const filePath = `fotos_colaboradores/${colaborador.id_colaborador}-${Date.now()}.${fileExtension}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from("imagens")
-          .upload(filePath, photoFile, {
-            cacheControl: "3600",
-            upsert: true,
-            contentType: photoFile.type,
-          });
-
-        if (uploadError) {
-          throw uploadError;
-        }
-
-        const { data: publicUrlData } = supabase.storage.from("imagens").getPublicUrl(filePath);
-
-        if (!publicUrlData?.publicUrl) {
-          throw new Error("Não foi possível gerar a URL pública da foto do colaborador");
-        }
-
-        updatedPhotoUrl = publicUrlData.publicUrl;
-      }
-
-      const collaboratorUpdates: Database["public"]["Tables"]["colaborador"]["Update"] = {
-        nome: colaborador.nome || null,
-        sobrenome: colaborador.sobrenome || null,
-        apelido: colaborador.apelido || null,
-        cargo: colaborador.cargo || null,
-        email_corporativo: colaborador.email_corporativo || null,
-        whatsapp: colaborador.whatsapp || null,
-        foto_url: updatedPhotoUrl,
-      };
-
-      const { error: collaboratorError } = await supabase
-        .from("colaborador")
-        .update(collaboratorUpdates)
-        .eq("id_colaborador", colaborador.id_colaborador);
-
-      if (collaboratorError) {
-        throw collaboratorError;
-      }
-
-      const emergencyPayload = buildEmergencyPayload({
-        nome: privateData.contato_emergencia_nome,
-        telefone: privateData.contato_emergencia_telefone,
-      });
-
-      const privatePayload: Database["public"]["Tables"]["colaborador_private"]["Insert"] = {
-        id_colaborador: colaborador.id_colaborador,
-        email_pessoal: privateData.email_pessoal || null,
-        telefone_pessoal: privateData.telefone_pessoal || null,
-        cpf: privateData.cpf || null,
-        rg: privateData.rg || null,
-        data_aniversario: privateData.data_nascimento || null,
-        endereco: privateData.endereco || null,
-        contato_emergencia: emergencyPayload,
-      };
-
-      const { error: privateError } = await supabase
-        .from("colaborador_private")
-        .upsert(privatePayload);
-
-      if (privateError) {
-        throw privateError;
-      }
-
-      if (photoFile) {
-        setPhotoFile(null);
-        setColaborador((prev) => ({ ...prev, foto_url: updatedPhotoUrl }));
-        setPhotoPreview(updatedPhotoUrl);
-      }
-
-      toast.success("Perfil atualizado com sucesso!");
-    } catch (submitError) {
-      console.error(submitError);
-      await logger.error("Erro ao atualizar perfil do colaborador", "PROFILE_UPDATE_ERROR", {
-        errorMessage: submitError instanceof Error ? submitError.message : String(submitError),
-      });
-      toast.error("Não foi possível salvar as alterações. Tente novamente.");
-    } finally {
-      setSaving(false);
-    }
-  };
+  const formattedAdmission = useMemo(() => formatDate(colaborador.data_admissao), [colaborador.data_admissao]);
+  const formattedBirthday = useMemo(() => formatDate(colaborador.data_aniversario), [colaborador.data_aniversario]);
+  const formattedDeparture = useMemo(() => formatDate(colaborador.data_desligamento), [colaborador.data_desligamento]);
+  const formattedPersonalBirthday = useMemo(() => formatDate(privateData.data_nascimento), [privateData.data_nascimento]);
 
   return (
     <Layout>
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
+      <div className="flex w-full flex-col gap-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Meu Perfil</h1>
           <p className="text-muted-foreground">
-            Atualize suas informações pessoais e profissionais utilizadas nos sistemas internos.
+            Consulte suas informações cadastradas, o status atual e os níveis de acesso que você possui na Leon.
           </p>
         </div>
 
@@ -350,138 +274,161 @@ export default function Perfil() {
             </CardContent>
           </Card>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="flex flex-col gap-6">
             <Card>
-              <CardHeader>
-                <CardTitle>Informações profissionais</CardTitle>
-                <CardDescription>Esses dados são utilizados pelas equipes internas e clientes.</CardDescription>
+              <CardHeader className="gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <CardTitle>{displayName || "Meu Perfil"}</CardTitle>
+                  <CardDescription>{formatValue(colaborador.email_corporativo || user?.email)}</CardDescription>
+                </div>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+              <CardContent className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center gap-4">
                   <Avatar className="h-20 w-20">
-                    {photoPreview ? (
-                      <AvatarImage src={photoPreview} alt={displayName || "Foto do perfil"} />
+                    {colaborador.foto_url ? (
+                      <AvatarImage src={colaborador.foto_url} alt={displayName || "Foto do perfil"} />
                     ) : (
                       <AvatarFallback>{initials}</AvatarFallback>
                     )}
                   </Avatar>
-                  <div className="w-full sm:max-w-xs">
-                    <Label htmlFor="foto">Foto do perfil</Label>
-                    <Input id="foto" type="file" accept="image/*" onChange={handlePhotoChange} />
-                    <p className="mt-1 text-xs text-muted-foreground">PNG, JPG ou WebP com até 5MB.</p>
+                  <div className="space-y-1">
+                    <p className="text-lg font-semibold text-foreground">{displayName || "Usuário"}</p>
+                    <p className="text-sm text-muted-foreground">{formatValue(colaborador.cargo)}</p>
+                    <p className="text-sm text-muted-foreground">ID do colaborador: {formatValue(colaborador.id_colaborador)}</p>
                   </div>
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="nome">Nome</Label>
-                    <Input id="nome" value={colaborador.nome} onChange={handleColaboradorChange("nome")} />
+                <div className="flex w-full flex-col gap-4 md:w-auto md:items-end">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Status</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {statusBadges.map((badge) => (
+                        <Badge
+                          key={badge.label}
+                          variant={badge.active ? "default" : "outline"}
+                          className={badge.active ? undefined : "text-muted-foreground"}
+                        >
+                          {badge.label}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="sobrenome">Sobrenome</Label>
-                    <Input id="sobrenome" value={colaborador.sobrenome} onChange={handleColaboradorChange("sobrenome")} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="apelido">Apelido</Label>
-                    <Input id="apelido" value={colaborador.apelido} onChange={handleColaboradorChange("apelido")} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="cargo">Cargo</Label>
-                    <Input id="cargo" value={colaborador.cargo} onChange={handleColaboradorChange("cargo")} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email_corporativo">E-mail corporativo</Label>
-                    <Input
-                      id="email_corporativo"
-                      type="email"
-                      value={colaborador.email_corporativo}
-                      onChange={handleColaboradorChange("email_corporativo")}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="whatsapp">WhatsApp</Label>
-                    <Input id="whatsapp" value={colaborador.whatsapp} onChange={handleColaboradorChange("whatsapp")} />
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Níveis de acesso</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {accessBadges.map((badge) => (
+                        <Badge
+                          key={badge.label}
+                          variant={badge.active ? "default" : "outline"}
+                          className={badge.active ? undefined : "text-muted-foreground"}
+                        >
+                          {badge.label}
+                        </Badge>
+                      ))}
+                      {!hasElevatedAccess && (
+                        <Badge variant="outline" className="text-muted-foreground">
+                          Colaborador
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Informações profissionais</CardTitle>
+                <CardDescription>Dados cadastrados para uso interno e relacionamento com clientes.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <dl className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-1">
+                    <dt className="text-sm font-medium text-muted-foreground">Nome completo</dt>
+                    <dd className="text-sm font-semibold text-foreground">{fullName}</dd>
+                  </div>
+                  <div className="space-y-1">
+                    <dt className="text-sm font-medium text-muted-foreground">Apelido</dt>
+                    <dd className="text-sm font-semibold text-foreground">{formatValue(colaborador.apelido)}</dd>
+                  </div>
+                  <div className="space-y-1">
+                    <dt className="text-sm font-medium text-muted-foreground">Cargo</dt>
+                    <dd className="text-sm font-semibold text-foreground">{formatValue(colaborador.cargo)}</dd>
+                  </div>
+                  <div className="space-y-1">
+                    <dt className="text-sm font-medium text-muted-foreground">E-mail corporativo</dt>
+                    <dd className="text-sm font-semibold text-foreground">
+                      {formatValue(colaborador.email_corporativo || user?.email)}
+                    </dd>
+                  </div>
+                  <div className="space-y-1">
+                    <dt className="text-sm font-medium text-muted-foreground">WhatsApp</dt>
+                    <dd className="text-sm font-semibold text-foreground">{formatValue(colaborador.whatsapp)}</dd>
+                  </div>
+                  <div className="space-y-1">
+                    <dt className="text-sm font-medium text-muted-foreground">Data de admissão</dt>
+                    <dd className="text-sm font-semibold text-foreground">{formattedAdmission}</dd>
+                  </div>
+                  <div className="space-y-1">
+                    <dt className="text-sm font-medium text-muted-foreground">Aniversário corporativo</dt>
+                    <dd className="text-sm font-semibold text-foreground">{formattedBirthday}</dd>
+                  </div>
+                  <div className="space-y-1">
+                    <dt className="text-sm font-medium text-muted-foreground">Data de desligamento</dt>
+                    <dd className="text-sm font-semibold text-foreground">{formattedDeparture}</dd>
+                  </div>
+                </dl>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
                 <CardTitle>Informações pessoais</CardTitle>
-                <CardDescription>Essas informações são privadas e utilizadas apenas pelo time interno.</CardDescription>
+                <CardDescription>Esses dados são privados e visíveis apenas para você.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="email_pessoal">E-mail pessoal</Label>
-                    <Input
-                      id="email_pessoal"
-                      type="email"
-                      value={privateData.email_pessoal}
-                      onChange={handlePrivateChange("email_pessoal")}
-                    />
+              <CardContent className="space-y-6">
+                <dl className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-1">
+                    <dt className="text-sm font-medium text-muted-foreground">E-mail pessoal</dt>
+                    <dd className="text-sm font-semibold text-foreground">{formatValue(privateData.email_pessoal)}</dd>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="telefone_pessoal">Telefone pessoal</Label>
-                    <Input
-                      id="telefone_pessoal"
-                      value={privateData.telefone_pessoal}
-                      onChange={handlePrivateChange("telefone_pessoal")}
-                    />
+                  <div className="space-y-1">
+                    <dt className="text-sm font-medium text-muted-foreground">Telefone pessoal</dt>
+                    <dd className="text-sm font-semibold text-foreground">{formatValue(privateData.telefone_pessoal)}</dd>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="cpf">CPF</Label>
-                    <Input id="cpf" value={privateData.cpf} onChange={handlePrivateChange("cpf")} />
+                  <div className="space-y-1">
+                    <dt className="text-sm font-medium text-muted-foreground">CPF</dt>
+                    <dd className="text-sm font-semibold text-foreground">{formatValue(privateData.cpf)}</dd>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="rg">RG</Label>
-                    <Input id="rg" value={privateData.rg} onChange={handlePrivateChange("rg")} />
+                  <div className="space-y-1">
+                    <dt className="text-sm font-medium text-muted-foreground">RG</dt>
+                    <dd className="text-sm font-semibold text-foreground">{formatValue(privateData.rg)}</dd>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="data_nascimento">Data de nascimento</Label>
-                    <Input
-                      id="data_nascimento"
-                      type="date"
-                      value={privateData.data_nascimento}
-                      onChange={handlePrivateChange("data_nascimento")}
-                    />
+                  <div className="space-y-1">
+                    <dt className="text-sm font-medium text-muted-foreground">Data de nascimento</dt>
+                    <dd className="text-sm font-semibold text-foreground">{formattedPersonalBirthday}</dd>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="contato_emergencia_nome">Contato de emergência</Label>
-                    <Input
-                      id="contato_emergencia_nome"
-                      value={privateData.contato_emergencia_nome}
-                      onChange={handlePrivateChange("contato_emergencia_nome")}
-                      placeholder="Nome"
-                    />
+                  <div className="space-y-1">
+                    <dt className="text-sm font-medium text-muted-foreground">Contato de emergência</dt>
+                    <dd className="text-sm font-semibold text-foreground">
+                      {formatValue(privateData.contato_emergencia_nome)}
+                    </dd>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="contato_emergencia_telefone">Telefone do contato</Label>
-                    <Input
-                      id="contato_emergencia_telefone"
-                      value={privateData.contato_emergencia_telefone}
-                      onChange={handlePrivateChange("contato_emergencia_telefone")}
-                    />
+                  <div className="space-y-1">
+                    <dt className="text-sm font-medium text-muted-foreground">Telefone do contato</dt>
+                    <dd className="text-sm font-semibold text-foreground">
+                      {formatValue(privateData.contato_emergencia_telefone)}
+                    </dd>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="endereco">Endereço residencial</Label>
-                  <Textarea
-                    id="endereco"
-                    value={privateData.endereco}
-                    onChange={handlePrivateChange("endereco")}
-                    rows={3}
-                  />
+                </dl>
+                <div className="space-y-1">
+                  <h3 className="text-sm font-medium text-muted-foreground">Endereço residencial</h3>
+                  <p className="text-sm font-semibold text-foreground whitespace-pre-line">
+                    {formatValue(privateData.endereco)}
+                  </p>
                 </div>
               </CardContent>
             </Card>
-
-            <div className="flex justify-end">
-              <Button type="submit" disabled={saving}>
-                {saving ? "Salvando..." : "Salvar alterações"}
-              </Button>
-            </div>
-          </form>
+          </div>
         )}
       </div>
     </Layout>
