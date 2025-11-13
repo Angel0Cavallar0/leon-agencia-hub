@@ -5,6 +5,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useState } from "react";
 import { NavLink } from "./NavLink";
 import { useLocation } from "react-router-dom";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
@@ -101,36 +102,58 @@ export function Sidebar() {
       </nav>
 
       {/* Footer com Logs, Configurações e Sair */}
-      <div className="p-4 border-t border-sidebar-border space-y-2">
-        {userRole === "admin" && (
-          <>
-            <NavLink
-              to="/logs"
-              end
-              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-              activeClassName="bg-sidebar-accent text-sidebar-accent-foreground"
-            >
-              <FileText className="h-5 w-5" />
-              <span className="font-medium">Logs</span>
-            </NavLink>
-            <NavLink
-              to="/configuracoes"
-              end
-              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-              activeClassName="bg-sidebar-accent text-sidebar-accent-foreground"
-            >
-              <Settings className="h-5 w-5" />
-              <span className="font-medium">Configurações</span>
-            </NavLink>
-          </>
-        )}
-        <button
-          onClick={signOut}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-        >
-          <LogOut className="h-5 w-5" />
-          <span className="font-medium">Sair</span>
-        </button>
+      <div className="p-4 border-t border-sidebar-border">
+        <TooltipProvider delayDuration={0}>
+          <div className="flex items-center justify-end gap-2">
+            {userRole === "admin" && (
+              <>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <NavLink
+                      to="/logs"
+                      end
+                      aria-label="Logs"
+                      className="flex h-10 w-10 items-center justify-center rounded-lg border border-sidebar-border text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground border-transparent"
+                    >
+                      <FileText className="h-5 w-5" />
+                      <span className="sr-only">Logs</span>
+                    </NavLink>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">Logs</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <NavLink
+                      to="/configuracoes"
+                      end
+                      aria-label="Configurações"
+                      className="flex h-10 w-10 items-center justify-center rounded-lg border border-sidebar-border text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground border-transparent"
+                    >
+                      <Settings className="h-5 w-5" />
+                      <span className="sr-only">Configurações</span>
+                    </NavLink>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">Configurações</TooltipContent>
+                </Tooltip>
+              </>
+            )}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={signOut}
+                  aria-label="Sair"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg border border-sidebar-border text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+                >
+                  <LogOut className="h-5 w-5" />
+                  <span className="sr-only">Sair</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top">Sair</TooltipContent>
+            </Tooltip>
+          </div>
+        </TooltipProvider>
       </div>
     </aside>
   );
