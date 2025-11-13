@@ -15,6 +15,7 @@ import Colaboradores from "./pages/Colaboradores";
 import ColaboradorNovo from "./pages/ColaboradorNovo";
 import ColaboradorDetalhes from "./pages/ColaboradorDetalhes";
 import Configuracoes from "./pages/Configuracoes";
+import Perfil from "./pages/Perfil";
 import Logs from "./pages/Logs";
 import ClickupResponsaveis from "./pages/clickup/Responsaveis";
 import ClickupTarefas from "./pages/clickup/Tarefas";
@@ -135,6 +136,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <Configuracoes />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/perfil"
+                element={
+                  <ProtectedRoute>
+                    <Perfil />
                   </ProtectedRoute>
                 }
               />
