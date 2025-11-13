@@ -48,7 +48,7 @@ type ColaboradorPrivateRow = Database["public"]["Tables"]["colaborador_private"]
 type UserRoleRow = Database["public"]["Tables"]["user_roles"]["Row"] & {
   wpp_acess?: boolean | null;
   crm_acess?: boolean | null;
-  crm_acess_level?: string | null;
+  crm_level_acess?: string[] | string | null;
 };
 
 type EmergencyContact = {
@@ -110,7 +110,7 @@ export default function Perfil() {
   const [error, setError] = useState<string | null>(null);
   const [wppAccess, setWppAccess] = useState<boolean | null>(null);
   const [crmAccess, setCrmAccess] = useState<boolean | null>(null);
-  const [crmAccessLevel, setCrmAccessLevel] = useState<string | null>(null);
+  const [crmAccessLevels, setCrmAccessLevels] = useState<string[]>([]);
 
   const displayName = useMemo(() => {
     if (colaborador.apelido) return colaborador.apelido;
@@ -158,7 +158,7 @@ export default function Perfil() {
       setLoading(false);
       setWppAccess(null);
       setCrmAccess(null);
-      setCrmAccessLevel(null);
+      setCrmAccessLevels([]);
       return;
     }
 
@@ -166,7 +166,7 @@ export default function Perfil() {
     setError(null);
     setWppAccess(null);
     setCrmAccess(null);
-    setCrmAccessLevel(null);
+    setCrmAccessLevels([]);
 
     try {
       const { data: colaboradorData, error: colaboradorError } = await supabase
@@ -185,7 +185,7 @@ export default function Perfil() {
         setError("Não encontramos um cadastro de colaborador vinculado a este usuário.");
         setWppAccess(null);
         setCrmAccess(null);
-        setCrmAccessLevel(null);
+        setCrmAccessLevels([]);
         return;
       }
 
@@ -213,7 +213,7 @@ export default function Perfil() {
 
       const { data: userRolesRow, error: userRolesError } = await supabase
         .from("user_roles")
-        .select("wpp_acess, crm_acess, crm_acess_level")
+        .select("wpp_acess, crm_acess, crm_level_acess")
         .eq("user_id", user.id)
         .maybeSingle();
 
@@ -225,7 +225,38 @@ export default function Perfil() {
         const roleRow = userRolesRow as UserRoleRow | null;
         setWppAccess(roleRow?.wpp_acess ?? null);
         setCrmAccess(roleRow?.crm_acess ?? null);
-        setCrmAccessLevel(roleRow?.crm_acess_level ?? null);
+
+        const normalizedCrmLevels = (() => {
+          const rawLevels = roleRow?.crm_level_acess;
+
+          if (!rawLevels) {
+            return [];
+          }
+
+          if (Array.isArray(rawLevels)) {
+            return rawLevels.filter((value): value is string => typeof value === "string" && value.trim().length > 0);
+          }
+
+          if (typeof rawLevels === "string") {
+            try {
+              const parsed = JSON.parse(rawLevels);
+              if (Array.isArray(parsed)) {
+                return parsed.filter((value): value is string => typeof value === "string" && value.trim().length > 0);
+              }
+            } catch {
+              return rawLevels
+                .split(/[,|]/)
+                .map((value) => value.trim())
+                .filter((value) => value.length > 0);
+            }
+
+            return rawLevels.trim().length > 0 ? [rawLevels.trim()] : [];
+          }
+
+          return [];
+        })();
+
+        setCrmAccessLevels(normalizedCrmLevels);
       }
 
       if (colaboradorRow.id_colaborador) {
@@ -267,7 +298,7 @@ export default function Perfil() {
       setError("Não foi possível carregar suas informações. Tente novamente mais tarde.");
       setWppAccess(null);
       setCrmAccess(null);
-      setCrmAccessLevel(null);
+      setCrmAccessLevels([]);
     } finally {
       setLoading(false);
     }
@@ -284,15 +315,6 @@ export default function Perfil() {
 
   const formattedAdmission = useMemo(() => formatDate(colaborador.data_admissao), [colaborador.data_admissao]);
   const formattedPersonalBirthday = useMemo(() => formatDate(privateData.data_nascimento), [privateData.data_nascimento]);
-  const formattedWppAccess = useMemo(() => {
-    if (wppAccess === null || wppAccess === undefined) return "Não informado";
-    return wppAccess ? "Sim" : "Não";
-  }, [wppAccess]);
-  const formattedCrmAccess = useMemo(() => {
-    if (crmAccess === null || crmAccess === undefined) return "Não informado";
-    return crmAccess ? "Sim" : "Não";
-  }, [crmAccess]);
-  const formattedCrmAccessLevel = useMemo(() => formatValue(crmAccessLevel), [crmAccessLevel]);
 
   const statusAndAccessBadges = useMemo(() => {
     const badges = [...activeStatusBadges];
@@ -305,8 +327,10 @@ export default function Perfil() {
       badges.push({ label: "Acesso CRM", active: true });
     }
 
-    if (crmAccessLevel) {
-      badges.push({ label: `CRM ${crmAccessLevel}`, active: true });
+    if (crmAccessLevels.length > 0) {
+      crmAccessLevels.forEach((level) => {
+        badges.push({ label: `CRM ${level}`, active: true });
+      });
     }
 
     if (activeAccessBadges.length > 0) {
@@ -318,7 +342,7 @@ export default function Perfil() {
     }
 
     return badges;
-  }, [activeAccessBadges, activeStatusBadges, crmAccess, crmAccessLevel, wppAccess]);
+  }, [activeAccessBadges, activeStatusBadges, crmAccess, crmAccessLevels, wppAccess]);
 
   return (
     <Layout>
@@ -408,20 +432,8 @@ export default function Perfil() {
                     <dd className="text-sm font-semibold text-foreground">{formatValue(colaborador.whatsapp)}</dd>
                   </div>
                   <div className="space-y-1">
-                    <dt className="text-sm font-medium text-muted-foreground">Permissão WhatsApp</dt>
-                    <dd className="text-sm font-semibold text-foreground">{formattedWppAccess}</dd>
-                  </div>
-                  <div className="space-y-1">
                     <dt className="text-sm font-medium text-muted-foreground">Data de admissão</dt>
                     <dd className="text-sm font-semibold text-foreground">{formattedAdmission}</dd>
-                  </div>
-                  <div className="space-y-1">
-                    <dt className="text-sm font-medium text-muted-foreground">Acesso CRM</dt>
-                    <dd className="text-sm font-semibold text-foreground">{formattedCrmAccess}</dd>
-                  </div>
-                  <div className="space-y-1">
-                    <dt className="text-sm font-medium text-muted-foreground">Nível de acesso CRM</dt>
-                    <dd className="text-sm font-semibold text-foreground">{formattedCrmAccessLevel}</dd>
                   </div>
                 </dl>
               </CardContent>
