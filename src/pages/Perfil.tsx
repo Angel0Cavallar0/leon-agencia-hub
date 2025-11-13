@@ -46,7 +46,9 @@ type PrivateDataState = typeof emptyPrivateData;
 type ColaboradorRow = Database["public"]["Tables"]["colaborador"]["Row"];
 type ColaboradorPrivateRow = Database["public"]["Tables"]["colaborador_private"]["Row"];
 type UserRoleRow = Database["public"]["Tables"]["user_roles"]["Row"] & {
-  has_wpp_permission?: boolean | null;
+  wpp_acess?: boolean | null;
+  crm_acess?: boolean | null;
+  crm_acess_level?: string | null;
 };
 
 type EmergencyContact = {
@@ -106,7 +108,9 @@ export default function Perfil() {
   const [privateData, setPrivateData] = useState<PrivateDataState>({ ...emptyPrivateData });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [hasWppPermission, setHasWppPermission] = useState<boolean | null>(null);
+  const [wppAccess, setWppAccess] = useState<boolean | null>(null);
+  const [crmAccess, setCrmAccess] = useState<boolean | null>(null);
+  const [crmAccessLevel, setCrmAccessLevel] = useState<string | null>(null);
 
   const displayName = useMemo(() => {
     if (colaborador.apelido) return colaborador.apelido;
@@ -152,13 +156,17 @@ export default function Perfil() {
       setPrivateData({ ...emptyPrivateData });
       setError("Usuário não autenticado.");
       setLoading(false);
-      setHasWppPermission(null);
+      setWppAccess(null);
+      setCrmAccess(null);
+      setCrmAccessLevel(null);
       return;
     }
 
     setLoading(true);
     setError(null);
-    setHasWppPermission(null);
+    setWppAccess(null);
+    setCrmAccess(null);
+    setCrmAccessLevel(null);
 
     try {
       const { data: colaboradorData, error: colaboradorError } = await supabase
@@ -175,7 +183,9 @@ export default function Perfil() {
         setColaborador({ ...emptyColaborador });
         setPrivateData({ ...emptyPrivateData });
         setError("Não encontramos um cadastro de colaborador vinculado a este usuário.");
-        setHasWppPermission(null);
+        setWppAccess(null);
+        setCrmAccess(null);
+        setCrmAccessLevel(null);
         return;
       }
 
@@ -203,17 +213,19 @@ export default function Perfil() {
 
       const { data: userRolesRow, error: userRolesError } = await supabase
         .from("user_roles")
-        .select("has_wpp_permission")
+        .select("wpp_acess, crm_acess, crm_acess_level")
         .eq("user_id", user.id)
         .maybeSingle();
 
       if (userRolesError) {
-        await logger.warning("Erro ao buscar permissão de WhatsApp", "PROFILE_WPP_PERMISSION_ERROR", {
+        await logger.warning("Erro ao buscar dados de permissões", "PROFILE_ROLE_PERMISSION_ERROR", {
           errorMessage: userRolesError.message,
         });
       } else {
         const roleRow = userRolesRow as UserRoleRow | null;
-        setHasWppPermission(roleRow?.has_wpp_permission ?? null);
+        setWppAccess(roleRow?.wpp_acess ?? null);
+        setCrmAccess(roleRow?.crm_acess ?? null);
+        setCrmAccessLevel(roleRow?.crm_acess_level ?? null);
       }
 
       if (colaboradorRow.id_colaborador) {
@@ -253,7 +265,9 @@ export default function Perfil() {
         errorMessage: loadError instanceof Error ? loadError.message : String(loadError),
       });
       setError("Não foi possível carregar suas informações. Tente novamente mais tarde.");
-      setHasWppPermission(null);
+      setWppAccess(null);
+      setCrmAccess(null);
+      setCrmAccessLevel(null);
     } finally {
       setLoading(false);
     }
@@ -270,12 +284,25 @@ export default function Perfil() {
 
   const formattedAdmission = useMemo(() => formatDate(colaborador.data_admissao), [colaborador.data_admissao]);
   const formattedPersonalBirthday = useMemo(() => formatDate(privateData.data_nascimento), [privateData.data_nascimento]);
+  const formattedCrmAccess = useMemo(() => {
+    if (crmAccess === null || crmAccess === undefined) return "Não informado";
+    return crmAccess ? "Sim" : "Não";
+  }, [crmAccess]);
+  const formattedCrmAccessLevel = useMemo(() => formatValue(crmAccessLevel), [crmAccessLevel]);
 
   const statusAndAccessBadges = useMemo(() => {
     const badges = [...activeStatusBadges];
 
-    if (hasWppPermission) {
+    if (wppAccess) {
       badges.push({ label: "Permissão WhatsApp", active: true });
+    }
+
+    if (crmAccess) {
+      badges.push({ label: "Acesso CRM", active: true });
+    }
+
+    if (crmAccessLevel) {
+      badges.push({ label: `CRM ${crmAccessLevel}`, active: true });
     }
 
     if (activeAccessBadges.length > 0) {
@@ -287,7 +314,7 @@ export default function Perfil() {
     }
 
     return badges;
-  }, [activeAccessBadges, activeStatusBadges, hasWppPermission]);
+  }, [activeAccessBadges, activeStatusBadges, crmAccess, crmAccessLevel, wppAccess]);
 
   return (
     <Layout>
@@ -379,6 +406,14 @@ export default function Perfil() {
                   <div className="space-y-1">
                     <dt className="text-sm font-medium text-muted-foreground">Data de admissão</dt>
                     <dd className="text-sm font-semibold text-foreground">{formattedAdmission}</dd>
+                  </div>
+                  <div className="space-y-1">
+                    <dt className="text-sm font-medium text-muted-foreground">Acesso CRM</dt>
+                    <dd className="text-sm font-semibold text-foreground">{formattedCrmAccess}</dd>
+                  </div>
+                  <div className="space-y-1">
+                    <dt className="text-sm font-medium text-muted-foreground">Nível de acesso CRM</dt>
+                    <dd className="text-sm font-semibold text-foreground">{formattedCrmAccessLevel}</dd>
                   </div>
                 </dl>
               </CardContent>
