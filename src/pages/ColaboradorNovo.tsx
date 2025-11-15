@@ -22,9 +22,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { logger } from "@/lib/logger";
 import type { Database } from "@/integrations/supabase/types";
 
-type AppRole = Database["public"]["Enums"]["app_role"];
-type AccessLevel = Exclude<AppRole, "user">;
 type StatusValue = "ativo" | "ferias" | "afastado";
+
+type ColaboradoresRow = Database["public"]["Tables"]["colaborador"]["Row"];
+type ColaboradoresInsert = Database["public"]["Tables"]["colaborador"]["Insert"];
+
+const COLABORADORES_TABLE =
+  "colaboradores" as unknown as keyof Database["public"]["Tables"];
 
 export default function ColaboradorNovo() {
   const navigate = useNavigate();
@@ -42,7 +46,6 @@ export default function ColaboradorNovo() {
     colab_ativo: true,
     colab_ferias: false,
     colab_afastado: false,
-    role: "geral" as AccessLevel,
   });
 
   const [status, setStatus] = useState<StatusValue>("ativo");
@@ -120,16 +123,21 @@ export default function ColaboradorNovo() {
     setLoading(true);
 
     try {
-      const { role, ...rest } = formData;
-
-      const payload = {
-        ...rest,
-        admin: role === "admin",
-        supervisor: role === "supervisor",
+      const payload: ColaboradoresInsert = {
+        ...formData,
+        admin: false,
+        supervisor: false,
       };
 
+      Object.entries(payload).forEach(([key, value]) => {
+        if (typeof value === "string") {
+          const trimmedValue = value.trim();
+          (payload as Record<string, unknown>)[key] = trimmedValue === "" ? null : trimmedValue;
+        }
+      });
+
       const { data: colaboradorData, error: colaboradorError } = await supabase
-        .from("colaborador")
+        .from<ColaboradoresRow>(COLABORADORES_TABLE)
         .insert([payload])
         .select()
         .single();
@@ -176,7 +184,7 @@ export default function ColaboradorNovo() {
             toast.error("Foto enviada, mas não foi possível gerar a URL pública");
           } else {
             const { data: updatedColaborador, error: updateError } = await supabase
-              .from("colaborador")
+              .from<ColaboradoresRow>(COLABORADORES_TABLE)
               .update({ foto_url: publicUrl })
               .eq("id_colaborador", colaboradorData.id_colaborador)
               .select()
@@ -199,29 +207,6 @@ export default function ColaboradorNovo() {
         }
       }
 
-      if (finalColaboradorData.user_id) {
-        const userRolesPayload: Database["public"]["Tables"]["user_roles"]["Insert"] = {
-          user_id: finalColaboradorData.user_id,
-          role,
-          wpp_acess: false,
-          crm_access: false,
-          crm_access_level: "negado",
-        };
-
-        const { error: userRolesError } = await supabase
-          .from("user_roles")
-          .upsert(userRolesPayload, { onConflict: "user_id" });
-
-        if (userRolesError) {
-          await logger.warning("Erro ao salvar permissões do colaborador", "COLAB_USER_ROLE_CREATE_ERROR", {
-            errorMessage: userRolesError.message,
-            colaboradorId: finalColaboradorData.id_colaborador,
-            userId: finalColaboradorData.user_id,
-          });
-          toast.error("Colaborador criado, mas houve erro ao salvar permissões");
-        }
-      }
-
       if (
         userRole === "admin" &&
         (privateData.email_pessoal ||
@@ -235,10 +220,10 @@ export default function ColaboradorNovo() {
       ) {
         const emergencyContact =
           privateData.contato_emergencia_nome || privateData.contato_emergencia_telefone
-            ? JSON.stringify({
+            ? {
                 nome: privateData.contato_emergencia_nome,
                 telefone: privateData.contato_emergencia_telefone,
-              })
+              }
             : null;
 
         const { error: privateError } = await supabase
