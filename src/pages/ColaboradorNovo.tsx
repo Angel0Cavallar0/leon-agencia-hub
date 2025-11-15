@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -26,6 +26,7 @@ type AppRole = Database["public"]["Enums"]["app_role"];
 type AccessLevel = Exclude<AppRole, "user">;
 type CrmAccessLevel = Database["public"]["Enums"]["crm_access_level_enum"];
 type BinaryAccess = "sim" | "nao";
+type StatusValue = "ativo" | "ferias" | "afastado";
 
 export default function ColaboradorNovo() {
   const navigate = useNavigate();
@@ -49,6 +50,7 @@ export default function ColaboradorNovo() {
   const [crmAccess, setCrmAccess] = useState<BinaryAccess>("nao");
   const [crmLevel, setCrmLevel] = useState<CrmAccessLevel>("negado");
   const [wppAccess, setWppAccess] = useState<BinaryAccess>("nao");
+  const [status, setStatus] = useState<StatusValue>("ativo");
 
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -114,12 +116,47 @@ export default function ColaboradorNovo() {
       : (option as { value: CrmAccessLevel; label: string; description: string })
   );
 
+  const statusOptions: { value: StatusValue; label: string; description: string }[] = [
+    {
+      value: "ativo",
+      label: "Ativo",
+      description: "Colaborador trabalhando normalmente.",
+    },
+    {
+      value: "ferias",
+      label: "Em Férias",
+      description: "Colaborador em período de férias.",
+    },
+    {
+      value: "afastado",
+      label: "Afastado",
+      description: "Colaborador afastado temporariamente.",
+    },
+  ];
+
   const binaryOptions: { value: BinaryAccess; label: string }[] = [
     { value: "sim", label: "Sim" },
     { value: "nao", label: "Não" },
   ];
 
+  const cardSurfaceClasses =
+    "rounded-xl border border-black/30 bg-white/90 shadow-md transition-colors dark:border-white/20 dark:bg-slate-900/70";
+  const inputSurfaceClasses =
+    "rounded-lg border border-black/10 bg-muted dark:border-white/15 dark:bg-slate-900/60";
+  const selectTriggerClasses =
+    "min-w-[260px] sm:min-w-[300px] h-12 rounded-lg border border-black/20 bg-white/80 text-left dark:border-white/20 dark:bg-slate-900/60";
+
   const binaryToBoolean = (value: BinaryAccess) => value === "sim";
+
+  const handleStatusChange = (value: StatusValue) => {
+    setStatus(value);
+    setFormData({
+      ...formData,
+      colab_ativo: value === "ativo",
+      colab_ferias: value === "ferias",
+      colab_afastado: value === "afastado",
+    });
+  };
 
   const handlePhotoChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -302,221 +339,222 @@ export default function ColaboradorNovo() {
 
   return (
     <Layout>
-      <div className="space-y-6 w-full max-w-6xl mx-auto text-left">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/colaboradores")}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Novo Colaborador</h1>
-            <p className="text-muted-foreground">Cadastre um novo membro da equipe</p>
-          </div>
-        </div>
-
+      <div className="w-full max-w-6xl mx-auto space-y-6 text-left">
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid gap-6 xl:grid-cols-[2fr,1fr] items-start">
-            <div className="space-y-6">
-              <Card>
-                <CardHeader className="space-y-1 text-left">
-                  <CardTitle>Informações Principais</CardTitle>
-                  <CardDescription>
-                    Preencha os dados básicos para o cadastro do colaborador.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="flex flex-col gap-6 lg:flex-row">
-                    <div className="flex w-full max-w-[200px] flex-col items-start gap-4">
-                      <div
-                        className="flex h-36 w-36 items-center justify-center rounded-full bg-emerald-800 text-sm font-semibold uppercase tracking-wide text-white"
-                        style={
-                          photoPreview
-                            ? {
-                                backgroundImage: `url(${photoPreview})`,
-                                backgroundSize: "cover",
-                                backgroundPosition: "center",
-                              }
-                            : undefined
-                        }
-                      >
-                        {!photoPreview && "foto"}
-                      </div>
-                      <div className="space-y-2 text-left">
-                        <input
-                          id="foto_colaborador"
-                          type="file"
-                          accept="image/*"
-                          onChange={handlePhotoChange}
-                          className="hidden"
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="rounded-full"
-                          onClick={() =>
-                            document.getElementById("foto_colaborador")?.click()
-                          }
-                        >
-                          Carregar foto
-                        </Button>
-                        <p className="text-xs text-muted-foreground">
-                          Utilize uma imagem quadrada para melhor resultado.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="grid flex-1 gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="nome">Nome *</Label>
-                        <Input
-                          id="nome"
-                          required
-                          value={formData.nome}
-                          onChange={(e) =>
-                            setFormData({ ...formData, nome: e.target.value })
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="sobrenome">Sobrenome</Label>
-                        <Input
-                          id="sobrenome"
-                          value={formData.sobrenome}
-                          onChange={(e) =>
-                            setFormData({ ...formData, sobrenome: e.target.value })
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="apelido">Apelido</Label>
-                        <Input
-                          id="apelido"
-                          value={formData.apelido}
-                          onChange={(e) =>
-                            setFormData({ ...formData, apelido: e.target.value })
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="cargo">Cargo</Label>
-                        <Input
-                          id="cargo"
-                          value={formData.cargo}
-                          onChange={(e) =>
-                            setFormData({ ...formData, cargo: e.target.value })
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="email_corporativo">Email Corporativo</Label>
-                        <Input
-                          id="email_corporativo"
-                          type="email"
-                          value={formData.email_corporativo}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              email_corporativo: e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="id_clickup">ID ClickUp</Label>
-                        <Input
-                          id="id_clickup"
-                          value={formData.id_clickup}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              id_clickup: e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="id_slack">ID Slack</Label>
-                        <Input
-                          id="id_slack"
-                          value={formData.id_slack}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              id_slack: e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="data_admissao">Data de Admissão</Label>
-                        <Input
-                          id="data_admissao"
-                          type="date"
-                          value={formData.data_admissao}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              data_admissao: e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="space-y-1 text-left">
-                  <CardTitle>Status do Colaborador</CardTitle>
-                  <CardDescription>
-                    Defina a situação atual do colaborador na empresa.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                  <div className="flex items-center justify-between gap-4">
-                    <Label htmlFor="colab_ativo">Colaborador Ativo</Label>
-                    <Switch
-                      id="colab_ativo"
-                      checked={formData.colab_ativo}
-                      onCheckedChange={(checked) =>
-                        setFormData({ ...formData, colab_ativo: checked })
-                      }
-                    />
-                  </div>
-                  <div className="flex items-center justify-between gap-4">
-                    <Label htmlFor="colab_ferias">Em Férias</Label>
-                    <Switch
-                      id="colab_ferias"
-                      checked={formData.colab_ferias}
-                      onCheckedChange={(checked) =>
-                        setFormData({ ...formData, colab_ferias: checked })
-                      }
-                    />
-                  </div>
-                  <div className="flex items-center justify-between gap-4">
-                    <Label htmlFor="colab_afastado">Afastado</Label>
-                    <Switch
-                      id="colab_afastado"
-                      checked={formData.colab_afastado}
-                      onCheckedChange={(checked) =>
-                        setFormData({ ...formData, colab_afastado: checked })
-                      }
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate("/colaboradores")}
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">Novo Colaborador</h1>
+                <p className="text-muted-foreground">Cadastre um novo membro da equipe</p>
+              </div>
             </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => navigate("/colaboradores")}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={loading} className="min-w-[180px]">
+                {loading ? "Salvando..." : "Criar Colaborador"}
+              </Button>
+            </div>
+          </div>
 
-            <div className="space-y-6">
-              <Card>
-                <CardHeader className="space-y-1 text-left">
-                  <CardTitle>Acesso e Permissões</CardTitle>
-                  <CardDescription>
-                    Configure o nível de acesso inicial e os privilégios principais.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
+          <Card className={cardSurfaceClasses}>
+            <CardHeader className="space-y-1 text-left pb-4">
+              <CardTitle className="text-xl font-semibold text-foreground">
+                Informações Principais
+              </CardTitle>
+              <CardDescription>
+                Preencha os dados básicos para o cadastro do colaborador.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-6">
+              <div className="flex flex-col gap-6 lg:flex-row">
+                <div className="flex w-full max-w-[180px] flex-col items-center gap-4">
+                  <div
+                    className="flex h-36 w-36 items-center justify-center rounded-full bg-emerald-800 text-lg font-semibold uppercase tracking-wide text-white"
+                    style={
+                      photoPreview
+                        ? {
+                            backgroundImage: `url(${photoPreview})`,
+                            backgroundSize: "cover",
+                            backgroundPosition: "center",
+                          }
+                        : undefined
+                    }
+                  >
+                    {!photoPreview && "foto"}
+                  </div>
+                  <div className="flex flex-col items-center gap-2">
+                    <input
+                      id="foto_colaborador"
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoChange}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      onClick={() => document.getElementById("foto_colaborador")?.click()}
+                      className="h-8 rounded-full bg-emerald-800 px-4 text-xs font-semibold tracking-wide text-white hover:bg-emerald-900"
+                    >
+                      CARREGAR FOTO
+                    </Button>
+                    <p className="text-xs text-muted-foreground text-center">
+                      Utilize uma imagem quadrada para melhor resultado.
+                    </p>
+                  </div>
+                </div>
+                <div className="grid flex-1 gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="nivel_acesso">Nível de Acesso</Label>
+                    <Label htmlFor="nome">Nome *</Label>
+                    <Input
+                      id="nome"
+                      required
+                      value={formData.nome}
+                      className={inputSurfaceClasses}
+                      onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sobrenome">Sobrenome</Label>
+                    <Input
+                      id="sobrenome"
+                      value={formData.sobrenome}
+                      className={inputSurfaceClasses}
+                      onChange={(e) => setFormData({ ...formData, sobrenome: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="apelido">Apelido</Label>
+                    <Input
+                      id="apelido"
+                      value={formData.apelido}
+                      className={inputSurfaceClasses}
+                      onChange={(e) => setFormData({ ...formData, apelido: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cargo">Cargo</Label>
+                    <Input
+                      id="cargo"
+                      value={formData.cargo}
+                      className={inputSurfaceClasses}
+                      onChange={(e) => setFormData({ ...formData, cargo: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="email_corporativo">Email Corporativo</Label>
+                    <Input
+                      id="email_corporativo"
+                      type="email"
+                      value={formData.email_corporativo}
+                      className={inputSurfaceClasses}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          email_corporativo: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="id_clickup">ID ClickUp</Label>
+                    <Input
+                      id="id_clickup"
+                      value={formData.id_clickup}
+                      className={inputSurfaceClasses}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          id_clickup: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="id_slack">ID Slack</Label>
+                    <Input
+                      id="id_slack"
+                      value={formData.id_slack}
+                      className={inputSurfaceClasses}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          id_slack: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="data_admissao">Data de Admissão</Label>
+                    <Input
+                      id="data_admissao"
+                      type="date"
+                      value={formData.data_admissao}
+                      className={inputSurfaceClasses}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          data_admissao: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <Separator className="border-muted-foreground/20" />
+
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col">
+                  <p className="text-base font-semibold text-foreground">Status do colaborador</p>
+                  <p className="text-sm text-muted-foreground">Controle o status atual do colaborador.</p>
+                </div>
+                <Select value={status} onValueChange={(value) => handleStatusChange(value as StatusValue)}>
+                  <SelectTrigger
+                    id="status_colaborador"
+                    className={`${selectTriggerClasses} w-full sm:w-auto`}
+                    aria-label="Selecione o status do colaborador"
+                  >
+                    <SelectValue placeholder="Selecione o status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statusOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        <div className="flex flex-col gap-1">
+                          <span className="font-medium">{option.label}</span>
+                          <span className="text-xs text-muted-foreground">{option.description}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Separator className="border-muted-foreground/20" />
+
+              <div className="space-y-6">
+                <div className="space-y-1">
+                  <p className="text-base font-semibold text-foreground">Permissões iniciais</p>
+                  <p className="text-sm text-muted-foreground">
+                    Defina como o colaborador acessará os sistemas e canais principais.
+                  </p>
+                </div>
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="nivel_acesso">Nível de acesso</Label>
                     <Select
                       value={formData.role}
                       onValueChange={(value) =>
@@ -526,17 +564,19 @@ export default function ColaboradorNovo() {
                         })
                       }
                     >
-                      <SelectTrigger id="nivel_acesso">
+                      <SelectTrigger
+                        id="nivel_acesso"
+                        className={`${selectTriggerClasses} w-full`}
+                        aria-label="Selecione o nível de acesso"
+                      >
                         <SelectValue placeholder="Selecione o nível" />
                       </SelectTrigger>
                       <SelectContent>
                         {roleOptions.map((option) => (
                           <SelectItem key={option.value} value={option.value}>
-                            <div className="flex flex-col text-left">
+                            <div className="flex flex-col gap-1">
                               <span className="font-medium">{option.label}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {option.description}
-                              </span>
+                              <span className="text-xs text-muted-foreground">{option.description}</span>
                             </div>
                           </SelectItem>
                         ))}
@@ -550,7 +590,11 @@ export default function ColaboradorNovo() {
                       value={wppAccess}
                       onValueChange={(value) => setWppAccess(value as BinaryAccess)}
                     >
-                      <SelectTrigger id="wpp_acess">
+                      <SelectTrigger
+                        id="wpp_acess"
+                        className={`${selectTriggerClasses} w-full`}
+                        aria-label="Defina se o colaborador acessa o WhatsApp"
+                      >
                         <SelectValue placeholder="Selecione uma opção" />
                       </SelectTrigger>
                       <SelectContent>
@@ -575,7 +619,11 @@ export default function ColaboradorNovo() {
                         }
                       }}
                     >
-                      <SelectTrigger id="crm_access">
+                      <SelectTrigger
+                        id="crm_access"
+                        className={`${selectTriggerClasses} w-full`}
+                        aria-label="Defina se o colaborador acessa o CRM"
+                      >
                         <SelectValue placeholder="Selecione uma opção" />
                       </SelectTrigger>
                       <SelectContent>
@@ -595,7 +643,11 @@ export default function ColaboradorNovo() {
                       onValueChange={(value) => setCrmLevel(value as CrmAccessLevel)}
                       disabled={crmAccess === "nao"}
                     >
-                      <SelectTrigger id="crm_level">
+                      <SelectTrigger
+                        id="crm_level"
+                        className={`${selectTriggerClasses} w-full`}
+                        aria-label="Defina o nível de acesso ao CRM"
+                      >
                         <SelectValue placeholder="Selecione o nível do CRM" />
                       </SelectTrigger>
                       <SelectContent>
@@ -607,149 +659,147 @@ export default function ColaboradorNovo() {
                       </SelectContent>
                     </Select>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-              {userRole === "admin" && (
-                <Card className="border-primary/20">
-                  <CardHeader className="space-y-1 text-left">
-                    <CardTitle>Dados Sensíveis</CardTitle>
-                    <CardDescription>
-                      Visível apenas para administradores
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
+          {userRole === "admin" && (
+            <Card className={cardSurfaceClasses}>
+              <CardHeader className="space-y-1 text-left pb-4">
+                <CardTitle className="text-xl font-semibold text-foreground">
+                  Dados Sensíveis
+                </CardTitle>
+                <CardDescription>
+                  Informações confidenciais, visíveis apenas para administradores.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email_pessoal">Email Pessoal</Label>
+                  <Input
+                    id="email_pessoal"
+                    type="email"
+                    value={privateData.email_pessoal}
+                    className={inputSurfaceClasses}
+                    onChange={(e) =>
+                      setPrivateData({
+                        ...privateData,
+                        email_pessoal: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="cpf">CPF</Label>
+                    <Input
+                      id="cpf"
+                      value={privateData.cpf}
+                      placeholder="000.000.000-00"
+                      className={inputSurfaceClasses}
+                      onChange={(e) =>
+                        setPrivateData({
+                          ...privateData,
+                          cpf: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="rg">RG</Label>
+                    <Input
+                      id="rg"
+                      value={privateData.rg}
+                      className={inputSurfaceClasses}
+                      onChange={(e) =>
+                        setPrivateData({
+                          ...privateData,
+                          rg: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="endereco">Endereço Residencial</Label>
+                  <Input
+                    id="endereco"
+                    value={privateData.endereco}
+                    className={inputSurfaceClasses}
+                    onChange={(e) =>
+                      setPrivateData({
+                        ...privateData,
+                        endereco: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="telefone_pessoal">Telefone Pessoal</Label>
+                  <PhoneInput
+                    value={privateData.telefone_pessoal}
+                    className={inputSurfaceClasses}
+                    onChange={(value) =>
+                      setPrivateData({
+                        ...privateData,
+                        telefone_pessoal: value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="data_aniversario">Data de Aniversário</Label>
+                  <Input
+                    id="data_aniversario"
+                    type="date"
+                    value={privateData.data_aniversario}
+                    className={inputSurfaceClasses}
+                    onChange={(e) =>
+                      setPrivateData({
+                        ...privateData,
+                        data_aniversario: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <Separator className="border-muted-foreground/20" />
+                <div className="space-y-4">
+                  <h4 className="text-base font-semibold text-foreground">Contatos de emergência</h4>
+                  <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="email_pessoal">Email Pessoal</Label>
+                      <Label htmlFor="contato_emergencia_nome">Nome</Label>
                       <Input
-                        id="email_pessoal"
-                        type="email"
-                        value={privateData.email_pessoal}
+                        id="contato_emergencia_nome"
+                        placeholder="Ex: Marcia"
+                        value={privateData.contato_emergencia_nome}
+                        className={inputSurfaceClasses}
                         onChange={(e) =>
                           setPrivateData({
                             ...privateData,
-                            email_pessoal: e.target.value,
+                            contato_emergencia_nome: e.target.value,
                           })
                         }
                       />
                     </div>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="cpf">CPF</Label>
-                        <Input
-                          id="cpf"
-                          value={privateData.cpf}
-                          placeholder="000.000.000-00"
-                          onChange={(e) =>
-                            setPrivateData({
-                              ...privateData,
-                              cpf: e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="rg">RG</Label>
-                        <Input
-                          id="rg"
-                          value={privateData.rg}
-                          onChange={(e) =>
-                            setPrivateData({
-                              ...privateData,
-                              rg: e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                    </div>
                     <div className="space-y-2">
-                      <Label htmlFor="endereco">Endereço Residencial</Label>
-                      <Input
-                        id="endereco"
-                        value={privateData.endereco}
-                        onChange={(e) =>
-                          setPrivateData({
-                            ...privateData,
-                            endereco: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="telefone_pessoal">Telefone Pessoal</Label>
+                      <Label htmlFor="contato_emergencia_telefone">Telefone</Label>
                       <PhoneInput
-                        value={privateData.telefone_pessoal}
+                        value={privateData.contato_emergencia_telefone}
+                        className={inputSurfaceClasses}
                         onChange={(value) =>
                           setPrivateData({
                             ...privateData,
-                            telefone_pessoal: value,
+                            contato_emergencia_telefone: value,
                           })
                         }
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="data_aniversario">Data de Aniversário</Label>
-                      <Input
-                        id="data_aniversario"
-                        type="date"
-                        value={privateData.data_aniversario}
-                        onChange={(e) =>
-                          setPrivateData({
-                            ...privateData,
-                            data_aniversario: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                    <div className="border-t pt-4 mt-4">
-                      <h4 className="mb-4 font-semibold">Contatos de emergência</h4>
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <div className="space-y-2">
-                          <Label htmlFor="contato_emergencia_nome">Nome</Label>
-                          <Input
-                            id="contato_emergencia_nome"
-                            placeholder="Ex: Marcia"
-                            value={privateData.contato_emergencia_nome}
-                            onChange={(e) =>
-                              setPrivateData({
-                                ...privateData,
-                                contato_emergencia_nome: e.target.value,
-                              })
-                            }
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="contato_emergencia_telefone">Telefone</Label>
-                          <PhoneInput
-                            value={privateData.contato_emergencia_telefone}
-                            onChange={(value) =>
-                              setPrivateData({
-                                ...privateData,
-                                contato_emergencia_telefone: value,
-                              })
-                            }
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2 justify-start">
-            <Button type="submit" disabled={loading}>
-              {loading ? "Salvando..." : "Criar Colaborador"}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate("/colaboradores")}
-            >
-              Cancelar
-            </Button>
-          </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </form>
       </div>
     </Layout>
