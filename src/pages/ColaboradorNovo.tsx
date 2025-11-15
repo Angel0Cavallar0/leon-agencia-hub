@@ -27,8 +27,7 @@ type StatusValue = "ativo" | "ferias" | "afastado";
 type ColaboradoresRow = Database["public"]["Tables"]["colaborador"]["Row"];
 type ColaboradoresInsert = Database["public"]["Tables"]["colaborador"]["Insert"];
 
-const COLABORADORES_TABLE =
-  "colaboradores" as unknown as keyof Database["public"]["Tables"];
+const COLABORADOR_TABLE = "colaborador" satisfies keyof Database["public"]["Tables"];
 
 export default function ColaboradorNovo() {
   const navigate = useNavigate();
@@ -137,7 +136,7 @@ export default function ColaboradorNovo() {
       });
 
       const { data: colaboradorData, error: colaboradorError } = await supabase
-        .from<ColaboradoresRow>(COLABORADORES_TABLE)
+        .from<ColaboradoresRow>(COLABORADOR_TABLE)
         .insert([payload])
         .select()
         .single();
@@ -184,7 +183,7 @@ export default function ColaboradorNovo() {
             toast.error("Foto enviada, mas não foi possível gerar a URL pública");
           } else {
             const { data: updatedColaborador, error: updateError } = await supabase
-              .from<ColaboradoresRow>(COLABORADORES_TABLE)
+              .from<ColaboradoresRow>(COLABORADOR_TABLE)
               .update({ foto_url: publicUrl })
               .eq("id_colaborador", colaboradorData.id_colaborador)
               .select()
