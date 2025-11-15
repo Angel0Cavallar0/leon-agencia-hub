@@ -45,8 +45,8 @@ type PrivateDataState = typeof emptyPrivateData;
 type ColaboradorRow = Database["public"]["Tables"]["colaborador"]["Row"];
 type ColaboradorPrivateRow = Database["public"]["Tables"]["colaborador_private"]["Row"];
 type UserRoleRow = Database["public"]["Tables"]["user_roles"]["Row"] & {
-  wpp_access?: boolean | null;
   wpp_acess?: boolean | null;
+  wpp_access?: boolean | null;
   crm_access?: boolean | null;
   crm_acess?: boolean | null;
   crm_access_level?: string[] | string | null;
@@ -227,10 +227,10 @@ export default function Perfil() {
       } else {
         const roleRow = userRolesRow as UserRoleRow | null;
         const resolvedWppAccess =
-          typeof roleRow?.wpp_access === "boolean"
-            ? roleRow.wpp_access
-            : typeof roleRow?.wpp_acess === "boolean"
+          typeof roleRow?.wpp_acess === "boolean"
             ? roleRow.wpp_acess
+            : typeof roleRow?.wpp_access === "boolean"
+            ? roleRow.wpp_access
             : null;
         setWppAccess(resolvedWppAccess);
 

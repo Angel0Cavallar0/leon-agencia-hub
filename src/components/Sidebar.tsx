@@ -46,7 +46,7 @@ type SidebarProfile = {
 
 type UserPermissions = {
   crm_access: boolean;
-  wpp_access: boolean;
+  wpp_acess: boolean;
 };
 
 export function Sidebar() {
@@ -58,7 +58,7 @@ export function Sidebar() {
   const [profile, setProfile] = useState<SidebarProfile | null>(null);
   const [permissions, setPermissions] = useState<UserPermissions>({
     crm_access: false,
-    wpp_access: false,
+    wpp_acess: false,
   });
 
   useEffect(() => {
@@ -68,7 +68,7 @@ export function Sidebar() {
       if (!user?.id) {
         if (isActive) {
           setProfile(null);
-          setPermissions({ crm_access: false, wpp_access: false });
+          setPermissions({ crm_access: false, wpp_acess: false });
         }
         return;
       }
@@ -102,10 +102,10 @@ export function Sidebar() {
 
       if (isActive && userRoles) {
         const resolvedWppAccess =
-          typeof userRoles.wpp_access === "boolean"
-            ? userRoles.wpp_access
-            : typeof (userRoles as { wpp_acess?: boolean }).wpp_acess === "boolean"
-            ? (userRoles as { wpp_acess?: boolean }).wpp_acess ?? false
+          typeof userRoles.wpp_acess === "boolean"
+            ? userRoles.wpp_acess
+            : typeof (userRoles as { wpp_access?: boolean }).wpp_access === "boolean"
+            ? (userRoles as { wpp_access?: boolean }).wpp_access ?? false
             : false;
 
         const resolvedCrmAccess =
@@ -117,7 +117,7 @@ export function Sidebar() {
 
         setPermissions({
           crm_access: resolvedCrmAccess,
-          wpp_access: resolvedWppAccess,
+          wpp_acess: resolvedWppAccess,
         });
       }
     };
@@ -237,7 +237,7 @@ export function Sidebar() {
         )}
 
         {/* WhatsApp - Condicional baseado em permissões */}
-        {permissions.wpp_access && (
+        {permissions.wpp_acess && (
           <NavLink
             to="/whatsapp"
             end

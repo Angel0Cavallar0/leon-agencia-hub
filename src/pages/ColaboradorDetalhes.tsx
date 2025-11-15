@@ -241,8 +241,8 @@ export default function ColaboradorDetalhes() {
     const roleData = data as {
       id?: string | null;
       role?: string | null;
-      wpp_access?: boolean | null;
       wpp_acess?: boolean | null;
+      wpp_access?: boolean | null;
       crm_access?: boolean | null;
       crm_acess?: boolean | null;
       crm_access_level?: string | null;
@@ -253,10 +253,10 @@ export default function ColaboradorDetalhes() {
     setUserRoleRowId(roleData.id ?? null);
     setRole(normalizeRole(roleData.role));
     const resolvedWppAccess =
-      typeof roleData.wpp_access === "boolean"
-        ? roleData.wpp_access
-        : typeof roleData.wpp_acess === "boolean"
+      typeof roleData.wpp_acess === "boolean"
         ? roleData.wpp_acess
+        : typeof roleData.wpp_access === "boolean"
+        ? roleData.wpp_access
         : null;
     setWppAccess(normalizeBinary(resolvedWppAccess));
 
@@ -500,7 +500,7 @@ export default function ColaboradorDetalhes() {
           role,
           crm_access: binaryToBoolean(crmAccess),
           crm_access_level: crmLevel,
-          wpp_access: binaryToBoolean(wppAccess),
+          wpp_acess: binaryToBoolean(wppAccess),
         };
 
         if (userRoleRowId) {
@@ -524,8 +524,8 @@ export default function ColaboradorDetalhes() {
           const updatedRoleData = userRoleData as {
             id?: string | null;
             role?: string | null;
-            wpp_access?: boolean | null;
             wpp_acess?: boolean | null;
+            wpp_access?: boolean | null;
             crm_access?: boolean | null;
             crm_acess?: boolean | null;
             crm_access_level?: string | null;
@@ -536,10 +536,10 @@ export default function ColaboradorDetalhes() {
           setUserRoleRowId(updatedRoleData.id ?? null);
           setRole(normalizeRole(updatedRoleData.role));
           const updatedWppAccess =
-            typeof updatedRoleData.wpp_access === "boolean"
-              ? updatedRoleData.wpp_access
-              : typeof updatedRoleData.wpp_acess === "boolean"
+            typeof updatedRoleData.wpp_acess === "boolean"
               ? updatedRoleData.wpp_acess
+              : typeof updatedRoleData.wpp_access === "boolean"
+              ? updatedRoleData.wpp_access
               : null;
           setWppAccess(normalizeBinary(updatedWppAccess));
 
@@ -1083,13 +1083,13 @@ export default function ColaboradorDetalhes() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="wpp_access">Acesso WhatsApp</Label>
+                    <Label htmlFor="wpp_acess">Acesso WhatsApp</Label>
                     <Select
                       value={wppAccess}
                       onValueChange={(value) => setWppAccess(value as BinaryAccess)}
                     >
                       <SelectTrigger
-                        id="wpp_access"
+                        id="wpp_acess"
                         className={`${selectTriggerClasses} w-full`}
                         aria-label="Defina se o colaborador acessa o WhatsApp"
                       >
