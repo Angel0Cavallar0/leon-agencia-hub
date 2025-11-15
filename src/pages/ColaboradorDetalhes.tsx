@@ -114,6 +114,7 @@ export default function ColaboradorDetalhes() {
   };
 
   type AccessLevel = "admin" | "gerente" | "supervisor" | "assistente" | "geral";
+  type CrmAccessLevel = Exclude<AccessLevel, "geral"> | "negado";
   type BinaryAccess = "sim" | "nao";
 
   const [colaborador, setColaborador] = useState<EditableColaborador | null>(null);
@@ -128,7 +129,7 @@ export default function ColaboradorDetalhes() {
   const [userRoleRowId, setUserRoleRowId] = useState<string | null>(null);
   const [wppAccess, setWppAccess] = useState<BinaryAccess>("nao");
   const [crmAccess, setCrmAccess] = useState<BinaryAccess>("nao");
-  const [crmLevel, setCrmLevel] = useState<AccessLevel>("geral");
+  const [crmLevel, setCrmLevel] = useState<CrmAccessLevel>("negado");
 
   const statusOptions = [
     {
@@ -176,10 +177,16 @@ export default function ColaboradorDetalhes() {
     },
     {
       value: "geral" as const,
-      label: "Geral",
+      label: "Básico",
       description: "Acesso básico apenas ao necessário para o trabalho diário.",
     },
   ];
+
+  const crmRoleOptions = roleOptions.map((option) =>
+    option.value === "geral"
+      ? { ...option, value: "negado" as const, label: "Negado" }
+      : option,
+  ) as { value: CrmAccessLevel; label: string; description: string }[];
 
   const binaryOptions: { value: BinaryAccess; label: string }[] = [
     { value: "sim", label: "Sim" },
@@ -201,6 +208,17 @@ export default function ColaboradorDetalhes() {
     }
   };
 
+  const normalizeCrmLevel = (
+    value: string | null | undefined,
+  ): CrmAccessLevel => {
+    if (value === "negado") {
+      return "negado";
+    }
+
+    const normalized = normalizeRole(value);
+    return normalized === "geral" ? "negado" : normalized;
+  };
+
   const normalizeBinary = (value: boolean | null | undefined): BinaryAccess => (value ? "sim" : "nao");
 
   const binaryToBoolean = (value: BinaryAccess) => value === "sim";
@@ -210,7 +228,7 @@ export default function ColaboradorDetalhes() {
     setRole(fallbackRole);
     setWppAccess("nao");
     setCrmAccess("nao");
-    setCrmLevel("geral");
+    setCrmLevel("negado");
   };
 
   const fetchUserRoleData = async (userId: string, fallbackRole: AccessLevel) => {
@@ -276,7 +294,7 @@ export default function ColaboradorDetalhes() {
         : typeof roleData.crm_level_acess === "string" && roleData.crm_level_acess.length > 0
         ? roleData.crm_level_acess
         : null;
-    setCrmLevel(normalizeRole(levelValue));
+    setCrmLevel(normalizeCrmLevel(levelValue));
   };
 
   const cardSurfaceClasses =
@@ -562,7 +580,7 @@ export default function ColaboradorDetalhes() {
                 updatedRoleData.crm_level_acess.length > 0
               ? updatedRoleData.crm_level_acess
               : null;
-          setCrmLevel(normalizeRole(updatedLevel));
+          setCrmLevel(normalizeCrmLevel(updatedLevel));
         }
       } else {
         await logger.warning(
@@ -658,7 +676,7 @@ export default function ColaboradorDetalhes() {
   if (!colaborador) {
     return (
       <Layout>
-        <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex min-h-[400px] w-full max-w-6xl items-center justify-center">
           <p className="text-muted-foreground">Carregando...</p>
         </div>
       </Layout>
@@ -1113,7 +1131,7 @@ export default function ColaboradorDetalhes() {
                         const nextValue = value as BinaryAccess;
                         setCrmAccess(nextValue);
                         if (nextValue === "nao") {
-                          setCrmLevel("geral");
+                          setCrmLevel("negado");
                         }
                       }}
                     >
@@ -1138,7 +1156,7 @@ export default function ColaboradorDetalhes() {
                     <Label htmlFor="crm_level">CRM Nível</Label>
                     <Select
                       value={crmLevel}
-                      onValueChange={(value) => setCrmLevel(value as AccessLevel)}
+                      onValueChange={(value) => setCrmLevel(value as CrmAccessLevel)}
                       disabled={crmAccess === "nao"}
                     >
                       <SelectTrigger
@@ -1149,7 +1167,7 @@ export default function ColaboradorDetalhes() {
                         <SelectValue placeholder="Selecione o nível do CRM" />
                       </SelectTrigger>
                       <SelectContent>
-                        {roleOptions.map((option) => (
+                        {crmRoleOptions.map((option) => (
                           <SelectItem key={option.value} value={option.value}>
                             {option.label}
                           </SelectItem>
