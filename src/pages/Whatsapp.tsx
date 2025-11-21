@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,6 +42,7 @@ export default function Whatsapp() {
   const [newMessage, setNewMessage] = useState("");
   const [webhookUrl, setWebhookUrl] = useState<string>("");
   const [senderProfile, setSenderProfile] = useState<SenderProfile | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const storedWebhook = localStorage.getItem(WEBHOOK_KEY);
@@ -134,6 +135,11 @@ export default function Whatsapp() {
         }),
     [messages, selectedChat]
   );
+
+  useEffect(() => {
+    if (!messagesEndRef.current) return;
+    messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+  }, [currentMessages.length, selectedChat]);
 
   const senderName = useMemo(() => {
     if (senderProfile?.apelido) return senderProfile.apelido;
@@ -299,6 +305,7 @@ export default function Whatsapp() {
                           </div>
                         </div>
                       ))}
+                      <div ref={messagesEndRef} />
                     </div>
                   </ScrollArea>
 
