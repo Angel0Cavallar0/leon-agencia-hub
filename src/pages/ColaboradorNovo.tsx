@@ -136,7 +136,7 @@ export default function ColaboradorNovo() {
       });
 
       const { data: colaboradorData, error: colaboradorError } = await supabase
-        .from<ColaboradoresRow>(COLABORADOR_TABLE)
+        .from(COLABORADOR_TABLE)
         .insert([payload])
         .select()
         .single();
@@ -183,9 +183,9 @@ export default function ColaboradorNovo() {
             toast.error("Foto enviada, mas não foi possível gerar a URL pública");
           } else {
             const { data: updatedColaborador, error: updateError } = await supabase
-              .from<ColaboradoresRow>(COLABORADOR_TABLE)
+              .from(COLABORADOR_TABLE)
               .update({ foto_url: publicUrl })
-              .eq("id_colaborador", colaboradorData.id_colaborador)
+              .eq("id_colaborador", colaboradorData!.id_colaborador)
               .select()
               .maybeSingle();
 

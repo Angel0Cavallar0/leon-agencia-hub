@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      chat_messages: {
+        Row: {
+          chat_id: string
+          chat_name: string | null
+          created_at: string | null
+          direcao: string
+          encaminhado: boolean | null
+          foto_contato: string | null
+          id: string
+          is_edited: boolean | null
+          is_group: boolean | null
+          message: string | null
+          message_id: string
+          numero_wpp: string | null
+          reference_message_id: string | null
+        }
+        Insert: {
+          chat_id: string
+          chat_name?: string | null
+          created_at?: string | null
+          direcao: string
+          encaminhado?: boolean | null
+          foto_contato?: string | null
+          id?: string
+          is_edited?: boolean | null
+          is_group?: boolean | null
+          message?: string | null
+          message_id: string
+          numero_wpp?: string | null
+          reference_message_id?: string | null
+        }
+        Update: {
+          chat_id?: string
+          chat_name?: string | null
+          created_at?: string | null
+          direcao?: string
+          encaminhado?: boolean | null
+          foto_contato?: string | null
+          id?: string
+          is_edited?: boolean | null
+          is_group?: boolean | null
+          message?: string | null
+          message_id?: string
+          numero_wpp?: string | null
+          reference_message_id?: string | null
+        }
+        Relationships: []
+      }
       clickup_responsaveis: {
         Row: {
           aprovacao_arte_id: string | null
@@ -554,78 +602,39 @@ export type Database = {
         }
         Relationships: []
       }
-      chat_messages: {
-        Row: {
-          chat_id: string
-          chat_name: string | null
-          created_at: string | null
-          direcao: string | null
-          encaminhado: boolean | null
-          foto_contato: string | null
-          is_edited: boolean | null
-          is_group: boolean | null
-          message: string | null
-          message_id: string
-          numero_wpp: string | null
-          reference_message_id: string | null
-        }
-        Insert: {
-          chat_id: string
-          chat_name?: string | null
-          created_at?: string | null
-          direcao?: string | null
-          encaminhado?: boolean | null
-          foto_contato?: string | null
-          is_edited?: boolean | null
-          is_group?: boolean | null
-          message?: string | null
-          message_id?: string
-          numero_wpp?: string | null
-          reference_message_id?: string | null
-        }
-        Update: {
-          chat_id?: string
-          chat_name?: string | null
-          created_at?: string | null
-          direcao?: string | null
-          encaminhado?: boolean | null
-          foto_contato?: string | null
-          is_edited?: boolean | null
-          is_group?: boolean | null
-          message?: string | null
-          message_id?: string
-          numero_wpp?: string | null
-          reference_message_id?: string | null
-        }
-        Relationships: []
-      }
       user_roles: {
         Row: {
           created_at: string | null
-          crm_access?: boolean
-          crm_access_level?: Database["public"]["Enums"]["crm_access_level_enum"]
+          crm_access: boolean | null
+          crm_access_level:
+            | Database["public"]["Enums"]["crm_access_level_enum"]
+            | null
           id: string
-          role: Database["public"]["Enums"]["app_role"]
+          role: Database["public"]["Enums"]["app_role"] | null
           user_id: string
-          wpp_acess: boolean
+          wpp_acess: boolean | null
         }
         Insert: {
           created_at?: string | null
-          crm_access?: boolean
-          crm_access_level?: Database["public"]["Enums"]["crm_access_level_enum"]
+          crm_access?: boolean | null
+          crm_access_level?:
+            | Database["public"]["Enums"]["crm_access_level_enum"]
+            | null
           id?: string
-          role: Database["public"]["Enums"]["app_role"]
+          role?: Database["public"]["Enums"]["app_role"] | null
           user_id: string
-          wpp_acess?: boolean
+          wpp_acess?: boolean | null
         }
         Update: {
           created_at?: string | null
-          crm_access?: boolean
-          crm_access_level?: Database["public"]["Enums"]["crm_access_level_enum"]
+          crm_access?: boolean | null
+          crm_access_level?:
+            | Database["public"]["Enums"]["crm_access_level_enum"]
+            | null
           id?: string
-          role?: Database["public"]["Enums"]["app_role"]
+          role?: Database["public"]["Enums"]["app_role"] | null
           user_id?: string
-          wpp_acess?: boolean
+          wpp_acess?: boolean | null
         }
         Relationships: []
       }
@@ -634,6 +643,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _chat_messages_user_has_wpp_acess: { Args: never; Returns: boolean }
       get_current_user_role: { Args: never; Returns: string }
       has_role: {
         Args: {
@@ -643,15 +653,20 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: never; Returns: boolean }
+      user_can_manage_app_data: { Args: never; Returns: boolean }
+      user_can_view_app_data: { Args: never; Returns: boolean }
+      user_has_any_role: {
+        Args: { required_roles: Database["public"]["Enums"]["app_role"][] }
+        Returns: boolean
+      }
     }
     Enums: {
-      app_role: "admin" | "supervisor" | "user" | "gerente" | "assistente" | "geral"
+      app_role: "admin" | "supervisor" | "gerente" | "assistente" | "geral"
       crm_access_level_enum:
         | "admin"
         | "gerente"
         | "supervisor"
         | "assistente"
-        | "geral"
         | "negado"
     }
     CompositeTypes: {
@@ -780,7 +795,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "supervisor", "user"],
+      app_role: ["admin", "supervisor", "gerente", "assistente", "geral"],
       crm_access_level_enum: [
         "admin",
         "gerente",

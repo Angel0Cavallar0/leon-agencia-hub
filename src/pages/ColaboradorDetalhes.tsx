@@ -142,7 +142,11 @@ export default function ColaboradorDetalhes() {
   const [permissionPassword, setPermissionPassword] = useState("");
   const [permissionError, setPermissionError] = useState<string | null>(null);
   const [isSavingPermissions, setIsSavingPermissions] = useState(false);
-
+  const [isGrantingAccess, setIsGrantingAccess] = useState(false);
+  const [isRevokingAccess, setIsRevokingAccess] = useState(false);
+  const [showRevokeDialog, setShowRevokeDialog] = useState(false);
+  const [revokePassword, setRevokePassword] = useState("");
+  const [revokeError, setRevokeError] = useState<string | null>(null);
   const statusOptions = [
     {
       value: "ativo" as const,
@@ -788,6 +792,94 @@ export default function ColaboradorDetalhes() {
     }
   };
 
+  const handleGrantAccess = async () => {
+    if (!colaborador || !colaborador.email_corporativo) {
+      toast.error("Email corporativo não encontrado");
+      return;
+    }
+
+    setIsGrantingAccess(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('grant-access', {
+        body: {
+          email: colaborador.email_corporativo,
+          colaboradorId: colaborador.id_colaborador,
+          role,
+          crmAccess: binaryToBoolean(crmAccess),
+          crmAccessLevel: crmLevel,
+          wppAccess: binaryToBoolean(wppAccess),
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.userId) {
+        setColaborador({
+          ...colaborador,
+          user_id: data.userId
+        });
+        await fetchUserRoleData(data.userId, role);
+        toast.success('Convite enviado! O colaborador receberá um email para definir a senha.');
+      }
+    } catch (error: any) {
+      await logger.error(
+        "Erro ao conceder acesso",
+        "COLAB_GRANT_ACCESS_ERROR",
+        buildErrorContext(error, { colaboradorId: colaborador.id_colaborador })
+      );
+      toast.error(error.message || 'Erro ao enviar convite de acesso');
+    } finally {
+      setIsGrantingAccess(false);
+    }
+  };
+
+  const handleRevokeAccess = async () => {
+    if (!colaborador?.user_id || !user?.email) {
+      toast.error("Dados insuficientes para revogar acesso");
+      return;
+    }
+
+    setIsRevokingAccess(true);
+    setRevokeError(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('revoke-access', {
+        body: {
+          colaboradorId: colaborador.id_colaborador,
+          userId: colaborador.user_id,
+          password: revokePassword,
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        setColaborador({
+          ...colaborador,
+          user_id: null
+        });
+        resetUserRoleData(role);
+        toast.success('Acesso removido com sucesso');
+        setShowRevokeDialog(false);
+        setRevokePassword("");
+      }
+    } catch (error: any) {
+      const message = error.message || 'Erro ao revogar acesso';
+      setRevokeError(message);
+      
+      if (message !== 'Senha incorreta') {
+        await logger.error(
+          "Erro ao revogar acesso",
+          "COLAB_REVOKE_ACCESS_ERROR",
+          buildErrorContext(error, { colaboradorId: colaborador.id_colaborador })
+        );
+      }
+    } finally {
+      setIsRevokingAccess(false);
+    }
+  };
+
+
   if (!colaborador) {
     return (
       <Layout>
@@ -1188,17 +1280,48 @@ export default function ColaboradorDetalhes() {
                   <CardTitle className="text-lg">Permissões e Acessos</CardTitle>
                   <CardDescription>Defina como o colaborador acessa os sistemas e canais.</CardDescription>
                 </div>
-                <Button
-                  type="button"
-                  className="w-full sm:ml-auto sm:w-auto"
-                  onClick={() => {
-                    setPermissionPassword("");
-                    setPermissionError(null);
-                    setIsPermissionDialogOpen(true);
-                  }}
-                >
-                  Salvar Permissões
-                </Button>
+                <div className="flex gap-2 w-full sm:ml-auto sm:w-auto">
+                  {!colaborador.user_id ? (
+                    <Button
+                      type="button"
+                      className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
+                      onClick={handleGrantAccess}
+                      disabled={isGrantingAccess || !colaborador.email_corporativo}
+                    >
+                      {isGrantingAccess ? "Enviando..." : "Liberar Acesso"}
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      className="w-full sm:w-auto bg-muted text-muted-foreground hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                      onClick={() => {
+                        setRevokePassword("");
+                        setRevokeError(null);
+                        setShowRevokeDialog(true);
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.textContent = "Remover Acesso";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.textContent = "Acesso Liberado";
+                      }}
+                    >
+                      Acesso Liberado
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    className="w-full sm:w-auto"
+                    onClick={() => {
+                      setPermissionPassword("");
+                      setPermissionError(null);
+                      setIsPermissionDialogOpen(true);
+                    }}
+                    disabled={!colaborador.user_id}
+                  >
+                    Salvar Permissões
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="pt-0">
                 <div className="grid gap-6 md:grid-cols-2">
@@ -1391,6 +1514,53 @@ export default function ColaboradorDetalhes() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Confirmar Desligamento
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialog de confirmação para revogar acesso */}
+      <AlertDialog open={showRevokeDialog} onOpenChange={(open) => {
+        setShowRevokeDialog(open);
+        if (!open) {
+          setRevokePassword("");
+          setRevokeError(null);
+        }
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover Acesso do Colaborador</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p className="font-semibold text-destructive">
+                ⚠️ Esta ação irá revogar permanentemente o acesso deste colaborador ao sistema.
+              </p>
+              <p>
+                O usuário será removido e todas as suas permissões serão excluídas.
+              </p>
+              <div className="space-y-2 pt-2">
+                <Label htmlFor="revoke-password">Digite sua senha para confirmar</Label>
+                <Input
+                  id="revoke-password"
+                  type="password"
+                  value={revokePassword}
+                  onChange={(e) => setRevokePassword(e.target.value)}
+                  placeholder="Sua senha"
+                  autoComplete="current-password"
+                />
+                {revokeError && (
+                  <p className="text-sm text-destructive">{revokeError}</p>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isRevokingAccess}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRevokeAccess}
+              disabled={isRevokingAccess || !revokePassword}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isRevokingAccess ? "Removendo..." : "Confirmar Remoção"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
