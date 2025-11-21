@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +21,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [showUserNotFoundModal, setShowUserNotFoundModal] = useState(false);
   const { signIn } = useAuth();
+  const { logoUrl } = useTheme();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,7 +69,7 @@ export default function Login() {
         <CardHeader className="space-y-5 text-center">
           <div className="flex justify-center">
             <img
-              src="https://cngslbtadxahipmuwftu.supabase.co/storage/v1/object/sign/imagens/logos_camaleon/logo_branca_transp.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV82NTBmMzk1MS1iNzJkLTQ2ZTktOTc1Ni02Y2UzNjdjYzk4MDMiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJpbWFnZW5zL2xvZ29zX2NhbWFsZW9uL2xvZ29fYnJhbmNhX3RyYW5zcC5wbmciLCJpYXQiOjE3NjI2MTQ0MzksImV4cCI6MTgyNTY4NjQzOX0.JEF1atH4IYND6wx8es538bhYFLPQXqzV4g5ZSvCJPOM"
+              src={logoUrl}
               alt="Logo Camaleon"
               className="h-12 w-auto drop-shadow-lg"
             />
