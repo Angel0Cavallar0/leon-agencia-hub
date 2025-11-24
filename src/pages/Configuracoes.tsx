@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -12,9 +13,41 @@ import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 
 export default function Configuracoes() {
-  const { 
-    darkMode, 
-    setDarkMode, 
+  type AccessLevel = "admin" | "gerente" | "supervisor" | "assistente" | "basico";
+
+  const accessLevelOptions: { value: AccessLevel; label: string; description: string }[] = [
+    {
+      value: "admin",
+      label: "Administrador",
+      description: "Acesso total ao sistema, incluindo a página de configuração.",
+    },
+    {
+      value: "gerente",
+      label: "Gerente",
+      description:
+        "Acesso amplo, sem a página de configuração. Pode ver dados sensíveis e editar informações críticas controladas.",
+    },
+    {
+      value: "supervisor",
+      label: "Supervisor",
+      description: "Pode visualizar informações sensíveis dos colaboradores, porém sem permissão de edição.",
+    },
+    {
+      value: "assistente",
+      label: "Assistente",
+      description:
+        "Uso operacional do sistema, WhatsApp e CRM (se liberados), sem acesso a dados sensíveis ou edição de registros.",
+    },
+    {
+      value: "basico",
+      label: "Básico",
+      description: "Acesso restrito às próprias informações, sem visualizar ou alterar dados de terceiros.",
+    },
+  ];
+
+  const {
+    darkMode,
+    setDarkMode,
     primaryColor, 
     setPrimaryColor, 
     secondaryColor,
@@ -32,6 +65,9 @@ export default function Configuracoes() {
   );
   const [isLoadingWebhook, setIsLoadingWebhook] = useState(true);
   const [isSavingWebhook, setIsSavingWebhook] = useState(false);
+  const [minAccessLevel, setMinAccessLevel] = useState<AccessLevel>("basico");
+  const [isLoadingAccessLevel, setIsLoadingAccessLevel] = useState(true);
+  const [isSavingAccessLevel, setIsSavingAccessLevel] = useState(false);
 
   useEffect(() => {
     const loadWebhook = async () => {
@@ -70,6 +106,38 @@ export default function Configuracoes() {
     };
 
     loadWebhook();
+  }, []);
+
+  useEffect(() => {
+    const loadMinAccessLevel = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("global_settings")
+          .select("value")
+          .eq("key", "min_access_level")
+          .maybeSingle();
+
+        if (error) throw error;
+
+        const storedValue = typeof data?.value === "string" ? data.value : "";
+        if (accessLevelOptions.some((option) => option.value === storedValue)) {
+          setMinAccessLevel(storedValue as AccessLevel);
+        }
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorStack = error instanceof Error ? error.stack : undefined;
+
+        await logger.error("Erro ao carregar nível mínimo de acesso", "ACCESS_LEVEL_LOAD", {
+          errorMessage,
+          errorStack,
+        });
+        toast.error("Não foi possível carregar a regra mínima de acesso");
+      } finally {
+        setIsLoadingAccessLevel(false);
+      }
+    };
+
+    loadMinAccessLevel();
   }, []);
 
   const handleSaveUrls = () => {
@@ -134,6 +202,7 @@ export default function Configuracoes() {
           <TabsList>
             <TabsTrigger value="appearance">Aparência</TabsTrigger>
             <TabsTrigger value="organizational">Organização</TabsTrigger>
+            <TabsTrigger value="access">Acesso</TabsTrigger>
             <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
           </TabsList>
 
@@ -263,6 +332,94 @@ export default function Configuracoes() {
                 <p className="text-sm text-muted-foreground">
                   Em breve você poderá configurar preferências organizacionais como nomenclatura de equipes e fluxos de aprovação.
                 </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="access">
+            <Card>
+              <CardHeader>
+                <CardTitle>Controle de acesso ao sistema</CardTitle>
+                <CardDescription>
+                  Defina a partir de qual nível de acesso o colaborador pode entrar no sistema e entenda o escopo de cada perfil.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <Label className="text-sm font-medium">Nível mínimo para acessar o sistema</Label>
+                  <div className="flex flex-col gap-2 md:flex-row md:items-center">
+                    <Select
+                      value={minAccessLevel}
+                      onValueChange={(value) => setMinAccessLevel(value as AccessLevel)}
+                      disabled={isLoadingAccessLevel || isSavingAccessLevel}
+                    >
+                      <SelectTrigger className="w-full md:w-[320px]">
+                        <SelectValue placeholder="Selecione o nível mínimo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {accessLevelOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      onClick={async () => {
+                        setIsSavingAccessLevel(true);
+                        try {
+                          const { error } = await supabase.from("global_settings").upsert({
+                            key: "min_access_level",
+                            value: minAccessLevel,
+                          });
+
+                          if (error) throw error;
+
+                          await logger.success("Nível mínimo de acesso atualizado", {
+                            accessLevel: minAccessLevel,
+                          });
+                          toast.success("Regra de acesso salva para todos os usuários!");
+                        } catch (error: unknown) {
+                          const errorMessage = error instanceof Error ? error.message : String(error);
+                          const errorStack = error instanceof Error ? error.stack : undefined;
+
+                          await logger.error("Erro ao salvar nível mínimo de acesso", "ACCESS_LEVEL_SAVE", {
+                            errorMessage,
+                            errorStack,
+                            accessLevel: minAccessLevel,
+                          });
+                          toast.error("Erro ao salvar regra de acesso: " + errorMessage);
+                        } finally {
+                          setIsSavingAccessLevel(false);
+                        }
+                      }}
+                      disabled={isSavingAccessLevel}
+                    >
+                      {isSavingAccessLevel ? "Salvando..." : "Salvar regra"}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Essa definição impede que perfis abaixo do nível selecionado façam login ou acessem áreas protegidas.
+                  </p>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-2">
+                  {accessLevelOptions.map((option) => (
+                    <div key={option.value} className="rounded-lg border p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-semibold">{option.label}</p>
+                          <p className="text-xs text-muted-foreground">{option.description}</p>
+                        </div>
+                        {minAccessLevel === option.value && (
+                          <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                            Nível mínimo atual
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
