@@ -8,6 +8,7 @@ interface ThemeConfig {
   primaryColor: string;
   secondaryColor: string;
   logoUrl: string;
+  logoIconUrl: string;
   faviconUrl: string;
 }
 
@@ -30,6 +31,7 @@ interface ThemeContextType extends ThemeConfig {
   setPrimaryColor: (color: string) => void;
   setSecondaryColor: (color: string) => void;
   setLogoUrl: (url: string) => void;
+  setLogoIconUrl: (url: string) => void;
   setFaviconUrl: (url: string) => void;
   saveAsGlobal: () => Promise<void>;
   loadGlobalSettings: () => Promise<void>;
@@ -42,6 +44,7 @@ const defaultConfig: ThemeConfig = {
   primaryColor: "166 100% 21%",
   secondaryColor: "166 98% 34%",
   logoUrl: "https://cngslbtadxahipmuwftu.supabase.co/storage/v1/object/public/imagens/logos_camaleon/logo_branca_transp.png",
+  logoIconUrl: "https://cngslbtadxahipmuwftu.supabase.co/storage/v1/object/public/imagens/logos_camaleon/logo_branca_transp.png",
   faviconUrl: "https://cngslbtadxahipmuwftu.supabase.co/storage/v1/object/public/imagens/logos_camaleon/fav_icon.webp",
 };
 
@@ -62,6 +65,10 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         typeof parsedConfig.logoUrl === "string" && parsedConfig.logoUrl.trim() !== ""
           ? parsedConfig.logoUrl
           : defaultConfig.logoUrl;
+      const sanitizedLogoIconUrl =
+        typeof parsedConfig.logoIconUrl === "string" && parsedConfig.logoIconUrl.trim() !== ""
+          ? parsedConfig.logoIconUrl
+          : sanitizedLogoUrl;
       const sanitizedFaviconUrl =
         typeof parsedConfig.faviconUrl === "string" && parsedConfig.faviconUrl.trim() !== ""
           ? parsedConfig.faviconUrl
@@ -72,6 +79,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         ...parsedConfig,
         darkMode: sanitizedDarkMode,
         logoUrl: sanitizedLogoUrl,
+        logoIconUrl: sanitizedLogoIconUrl,
         faviconUrl: sanitizedFaviconUrl,
       } as ThemeConfig;
     } catch (error) {
@@ -135,6 +143,10 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     setConfig((prev) => ({ ...prev, logoUrl: url }));
   };
 
+  const setLogoIconUrl = (url: string) => {
+    setConfig((prev) => ({ ...prev, logoIconUrl: url }));
+  };
+
   const setFaviconUrl = (url: string) => {
     setConfig((prev) => ({ ...prev, faviconUrl: url }));
   };
@@ -148,6 +160,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       primaryColor: typeof settings.primaryColor === "string" ? settings.primaryColor : undefined,
       secondaryColor: typeof settings.secondaryColor === "string" ? settings.secondaryColor : undefined,
       logoUrl: typeof settings.logoUrl === "string" ? settings.logoUrl : undefined,
+      logoIconUrl: typeof settings.logoIconUrl === "string" ? settings.logoIconUrl : undefined,
       faviconUrl: typeof settings.faviconUrl === "string" ? settings.faviconUrl : undefined,
     };
   };
@@ -174,6 +187,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
           primaryColor: parsedSettings.primaryColor || parsedColors.primaryColor || prev.primaryColor,
           secondaryColor: parsedSettings.secondaryColor || parsedColors.secondaryColor || prev.secondaryColor,
           logoUrl: parsedSettings.logoUrl || prev.logoUrl,
+          logoIconUrl: parsedSettings.logoIconUrl || prev.logoIconUrl || parsedSettings.logoUrl || prev.logoUrl,
           faviconUrl: parsedSettings.faviconUrl || prev.faviconUrl,
         };
       });
@@ -199,6 +213,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
             primaryColor: config.primaryColor,
             secondaryColor: config.secondaryColor,
             logoUrl: config.logoUrl,
+            logoIconUrl: config.logoIconUrl,
             faviconUrl: config.faviconUrl,
           },
         },
@@ -217,6 +232,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         secondaryColor: config.secondaryColor,
         darkMode: config.darkMode,
         logoUrl: config.logoUrl,
+        logoIconUrl: config.logoIconUrl,
         faviconUrl: config.faviconUrl,
       });
       toast.success("Configurações salvas como padrão para todos os usuários!");
@@ -231,6 +247,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         secondaryColor: config.secondaryColor,
         darkMode: config.darkMode,
         logoUrl: config.logoUrl,
+        logoIconUrl: config.logoIconUrl,
         faviconUrl: config.faviconUrl,
       });
       toast.error("Erro ao salvar configurações globais: " + errorMessage);
@@ -245,6 +262,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         setPrimaryColor,
         setSecondaryColor,
         setLogoUrl,
+        setLogoIconUrl,
         setFaviconUrl,
         saveAsGlobal,
         loadGlobalSettings,

@@ -8,6 +8,7 @@ import {
   Building2,
   LogOut,
   Settings,
+  ChevronsLeftRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,22 +20,25 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 
-const menuItems = [
+const mainMenuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
   { icon: Users, label: "Clientes", path: "/clientes" },
   { icon: UserCog, label: "Colaboradores", path: "/colaboradores" },
-  {
-    icon: MousePointerClick,
-    label: "ClickUp",
-    path: "/clickup",
-    submenu: [
-      { label: "Responsáveis", path: "/clickup/responsaveis" },
-      { label: "Tarefas", path: "/clickup/tarefas" },
-      { label: "Pastas", path: "/clickup/pastas" },
-      { label: "Listas", path: "/clickup/listas" },
-    ],
-  },
 ];
+
+const clickUpMenuItem = {
+  icon: MousePointerClick,
+  label: "ClickUp",
+  path: "/clickup",
+  submenu: [
+    { label: "Responsáveis", path: "/clickup/responsaveis" },
+    { label: "Tarefas", path: "/clickup/tarefas" },
+    { label: "Pastas", path: "/clickup/pastas" },
+    { label: "Listas", path: "/clickup/listas" },
+  ],
+} as const;
+
+const menuItems = [...mainMenuItems, clickUpMenuItem];
 
 type SidebarProfile = {
   id_colaborador: string | null;
@@ -51,8 +55,14 @@ type UserPermissions = {
 
 export function Sidebar() {
   const { user, signOut, userRole } = useAuth();
-  const { logoUrl } = useTheme();
+  const { logoUrl, logoIconUrl } = useTheme();
   const [clickUpOpen, setClickUpOpen] = useState(false);
+  const [hoverTimer, setHoverTimer] = useState<number | null>(null);
+  const [closeTimer, setCloseTimer] = useState<number | null>(null);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("sidebar-collapsed") === "true";
+  });
   const location = useLocation();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<SidebarProfile | null>(null);
@@ -153,56 +163,129 @@ export function Sidebar() {
     return "?";
   }, [displayName]);
 
+  const handleClickUpEnter = () => {
+    if (hoverTimer) {
+      window.clearTimeout(hoverTimer);
+    }
+
+    if (closeTimer) {
+      window.clearTimeout(closeTimer);
+      setCloseTimer(null);
+    }
+
+    const timer = window.setTimeout(() => {
+      setClickUpOpen(true);
+    }, 250);
+
+    setHoverTimer(timer);
+  };
+
+  const handleClickUpLeave = () => {
+    if (hoverTimer) {
+      window.clearTimeout(hoverTimer);
+      setHoverTimer(null);
+    }
+
+    if (closeTimer) {
+      window.clearTimeout(closeTimer);
+    }
+
+    const timer = window.setTimeout(() => {
+      setClickUpOpen(false);
+    }, 200);
+
+    setCloseTimer(timer);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimer) {
+        window.clearTimeout(hoverTimer);
+      }
+
+      if (closeTimer) {
+        window.clearTimeout(closeTimer);
+      }
+    };
+  }, [hoverTimer, closeTimer]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem("sidebar-collapsed", isCollapsed ? "true" : "false");
+  }, [isCollapsed]);
+
+  const activeLogoIcon = logoIconUrl?.trim() ? logoIconUrl : logoUrl;
+
   return (
-    <aside className="fixed inset-y-0 left-0 flex h-full w-64 flex-col border-r border-sidebar-border bg-sidebar">
+    <aside
+      className={cn(
+        "fixed inset-y-0 left-0 flex h-full flex-col border-r border-sidebar-border bg-sidebar transition-all duration-200",
+        isCollapsed ? "w-20" : "w-64"
+      )}
+    >
       {/* Logo */}
-      <div className="p-6 border-b border-sidebar-border">
-        {logoUrl ? (
-          <img src={logoUrl} alt="Logo" className="h-10 w-auto" />
+      <div
+        className={cn(
+          "border-b border-sidebar-border p-6",
+          isCollapsed ? "flex items-center justify-center" : ""
+        )}
+      >
+        {activeLogoIcon ? (
+          <img
+            src={isCollapsed ? activeLogoIcon : logoUrl}
+            alt="Logo"
+            className={cn(
+              "object-contain",
+              isCollapsed ? "h-10 w-10" : "h-10 w-auto"
+            )}
+          />
         ) : (
           <h2 className="text-xl font-bold text-sidebar-foreground">Leon Manager</h2>
         )}
       </div>
 
       {/* Menu Items */}
-      <nav className="flex-1 p-4 space-y-2">
+      <nav className="relative flex-1 space-y-2 p-4">
         {menuItems.map((item) => {
           const Icon = item.icon;
-          const isActive = location.pathname === item.path || 
+          const isActive = location.pathname === item.path ||
             (item.submenu && item.submenu.some(sub => location.pathname === sub.path));
 
           if (item.submenu) {
             return (
-              <div 
-                key={item.path} 
-                className="space-y-1"
-                onMouseEnter={() => setClickUpOpen(true)}
-                onMouseLeave={() => setClickUpOpen(false)}
+              <div
+                key={item.path}
+                className="relative space-y-1"
+                onMouseEnter={handleClickUpEnter}
+                onMouseLeave={handleClickUpLeave}
               >
                 <div
                   className={cn(
                     "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors cursor-pointer",
                     isActive
                       ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                    isCollapsed ? "justify-center" : ""
                   )}
                 >
                   <Icon className="h-5 w-5" />
-                  <span className="font-medium">{item.label}</span>
+                  {!isCollapsed && <span className="font-medium">{item.label}</span>}
                 </div>
                 {clickUpOpen && (
-                  <div className="ml-8 space-y-1">
-                    {item.submenu.map((subItem) => (
-                      <NavLink
-                        key={subItem.path}
-                        to={subItem.path}
-                        end
-                        className="block px-3 py-2 rounded-lg text-sm transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                        activeClassName="bg-sidebar-accent text-sidebar-accent-foreground"
-                      >
-                        {subItem.label}
-                      </NavLink>
-                    ))}
+                  <div className="absolute left-full top-0 z-20 ml-3 w-56 rounded-lg bg-sidebar-accent text-sidebar-accent-foreground shadow-lg">
+                    <div className="space-y-1 p-3">
+                      {item.submenu.map((subItem) => (
+                        <NavLink
+                          key={subItem.path}
+                          to={subItem.path}
+                          end
+                          className="block rounded-lg px-3 py-2 text-sm transition-colors hover:bg-sidebar bg-sidebar/20"
+                          activeClassName="bg-sidebar text-sidebar-foreground"
+                        >
+                          {subItem.label}
+                        </NavLink>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -214,11 +297,14 @@ export function Sidebar() {
               key={item.path}
               to={item.path}
               end
-              className="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              className={cn(
+                "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                isCollapsed ? "justify-center" : ""
+              )}
               activeClassName="bg-sidebar-accent text-sidebar-accent-foreground"
             >
               <Icon className="h-5 w-5" />
-              <span className="font-medium">{item.label}</span>
+              {!isCollapsed && <span className="font-medium">{item.label}</span>}
             </NavLink>
           );
         })}
@@ -228,11 +314,14 @@ export function Sidebar() {
           <NavLink
             to="/crm"
             end
-            className="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            className={cn(
+              "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+              isCollapsed ? "justify-center" : ""
+            )}
             activeClassName="bg-sidebar-accent text-sidebar-accent-foreground"
           >
             <Building2 className="h-5 w-5" />
-            <span className="font-medium">CRM</span>
+            {!isCollapsed && <span className="font-medium">CRM</span>}
           </NavLink>
         )}
 
@@ -241,22 +330,43 @@ export function Sidebar() {
           <NavLink
             to="/whatsapp"
             end
-            className="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            className={cn(
+              "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+              isCollapsed ? "justify-center" : ""
+            )}
             activeClassName="bg-sidebar-accent text-sidebar-accent-foreground"
           >
             <MessageSquare className="h-5 w-5" />
-            <span className="font-medium">WhatsApp</span>
+            {!isCollapsed && <span className="font-medium">WhatsApp</span>}
           </NavLink>
         )}
       </nav>
 
       {/* Footer com Logs, Configurações e Sair */}
-      <div className="px-4 py-3 border-t border-sidebar-border">
+      <div className="border-t border-sidebar-border px-4 py-3">
         <div className="flex flex-col gap-4">
           <button
             type="button"
+            onClick={() => setIsCollapsed((prev) => !prev)}
+            className={cn(
+              "flex items-center gap-2 rounded-lg px-2 py-2 text-left text-sm font-medium transition-colors hover:bg-sidebar-accent/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+              isCollapsed ? "justify-center" : ""
+            )}
+          >
+            <ChevronsLeftRight className="h-4 w-4" />
+            {!isCollapsed ? (
+              <span>Recolher barra</span>
+            ) : (
+              <span className="sr-only">Expandir barra</span>
+            )}
+          </button>
+          <button
+            type="button"
             onClick={() => navigate("/perfil")}
-            className="flex items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-sidebar-accent/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-sidebar-accent/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+              isCollapsed ? "justify-center" : ""
+            )}
           >
             <Avatar className="h-10 w-10">
               {profile?.foto_url ? (
@@ -267,9 +377,11 @@ export function Sidebar() {
                 </AvatarFallback>
               )}
             </Avatar>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-sidebar-foreground">{displayName}</p>
-            </div>
+            {!isCollapsed && (
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-sidebar-foreground">{displayName}</p>
+              </div>
+            )}
           </button>
           <div className="h-px bg-sidebar-border" />
           <TooltipProvider delayDuration={0}>
