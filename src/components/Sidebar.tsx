@@ -232,6 +232,7 @@ export function Sidebar() {
   }, [isCollapsed]);
 
   const activeLogoIcon = logoIconUrl?.trim() ? logoIconUrl : logoUrl;
+  const overlayLeftOffset = isCollapsed ? "5rem" : "16rem";
 
   const handleFooterEnter = () => {
     if (footerHoverTimer) {
@@ -323,7 +324,7 @@ export function Sidebar() {
                   {!isCollapsed && <span className="font-medium">{item.label}</span>}
                 </div>
                 {clickUpOpen && (
-                  <div className="absolute left-full top-0 z-20 ml-3 w-56 rounded-lg bg-sidebar-accent text-sidebar-accent-foreground shadow-lg">
+                  <div className="absolute left-full top-0 z-40 ml-3 w-56 rounded-lg bg-sidebar-accent text-sidebar-accent-foreground shadow-lg">
                     <div className="space-y-1 p-3">
                       {item.submenu.map((subItem) => (
                         <NavLink
@@ -392,6 +393,15 @@ export function Sidebar() {
           </NavLink>
         )}
       </nav>
+
+      {clickUpOpen && (
+        <div
+          className="fixed inset-y-0 right-0 z-30 bg-transparent"
+          style={{ left: overlayLeftOffset }}
+          onClick={() => setClickUpOpen(false)}
+          aria-hidden
+        />
+      )}
 
       {/* Footer com Logs, Configurações, Recolher e Sair */}
       <div className="border-t border-sidebar-border px-4 py-3">
