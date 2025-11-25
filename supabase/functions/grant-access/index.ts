@@ -35,6 +35,13 @@ serve(async (req) => {
         headers: { Authorization: authHeader }
       }
     });
+
+    const supabasePasswordCheck = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      }
+    });
     
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
@@ -53,7 +60,7 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { data: authData, error: authError } = await supabaseUser.auth.signInWithPassword({
+    const { data: authData, error: authError } = await supabasePasswordCheck.auth.signInWithPassword({
       email: user.email!,
       password: password
     });

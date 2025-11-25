@@ -823,6 +823,10 @@ export default function ColaboradorDetalhes() {
 
       if (error) throw error;
 
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
       if (data?.userId) {
         setColaborador({
           ...colaborador,
@@ -837,7 +841,9 @@ export default function ColaboradorDetalhes() {
       const message = error.message || 'Erro ao enviar convite de acesso';
       setGrantError(message);
 
-      if (message !== 'Senha incorreta') {
+      if (message === 'Senha incorreta') {
+        toast.error('Senha incorreta. Tente novamente.');
+      } else {
         await logger.error(
           "Erro ao conceder acesso",
           "COLAB_GRANT_ACCESS_ERROR",
