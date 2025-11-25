@@ -226,8 +226,8 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
       {/* Logo */}
       <div
         className={cn(
-          "border-b border-sidebar-border",
-          collapsed ? "flex justify-center p-4" : "p-6"
+          "flex items-center justify-center border-b border-sidebar-border",
+          collapsed ? "p-3" : "p-4"
         )}
       >
         {(collapsed ? logoIconUrl : logoUrl) ? (
@@ -351,17 +351,22 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
       </nav>
 
       {/* Footer com Logs, Configurações e Sair */}
-      <div className={cn("px-4 py-3 border-t border-sidebar-border", collapsed ? "px-2" : undefined)}>
-        <div className="flex flex-col gap-4">
+      <div
+        className={cn(
+          "border-t border-[#006B52] px-4 py-2",
+          collapsed ? "px-2" : undefined
+        )}
+      >
+        <div className="flex flex-col gap-3">
           <button
             type="button"
             onClick={() => navigate("/perfil")}
             className={cn(
-              "flex items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-sidebar-accent/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+              "flex items-center gap-3 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-sidebar-accent/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
               collapsed ? "justify-center" : undefined
             )}
           >
-            <Avatar className="h-10 w-10">
+            <Avatar className="h-9 w-9">
               {profile?.foto_url ? (
                 <AvatarImage src={profile.foto_url} alt={displayName} />
               ) : (
@@ -376,7 +381,6 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
               </div>
             )}
           </button>
-          <div className="h-px bg-sidebar-border" />
           <TooltipProvider delayDuration={0}>
             {collapsed ? (
               <HoverCard openDelay={0} closeDelay={75}>
