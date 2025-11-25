@@ -54,11 +54,14 @@ export default function Configuracoes() {
     setSecondaryColor,
     logoUrl, 
     setLogoUrl, 
+    logoIconUrl, 
+    setLogoIconUrl,
     faviconUrl, 
     setFaviconUrl,
     saveAsGlobal 
   } = useTheme();
   const [tempLogoUrl, setTempLogoUrl] = useState(logoUrl);
+  const [tempLogoIconUrl, setTempLogoIconUrl] = useState(logoIconUrl);
   const [tempFaviconUrl, setTempFaviconUrl] = useState(faviconUrl);
   const [whatsappWebhook, setWhatsappWebhook] = useState(
     () => localStorage.getItem("whatsapp-webhook-url") || ""
@@ -142,6 +145,7 @@ export default function Configuracoes() {
 
   const handleSaveUrls = () => {
     setLogoUrl(tempLogoUrl);
+    setLogoIconUrl(tempLogoIconUrl);
     setFaviconUrl(tempFaviconUrl);
     toast.success("Configurações salvas com sucesso!");
   };
@@ -239,6 +243,15 @@ export default function Configuracoes() {
                         placeholder="https://exemplo.com/favicon.ico"
                         value={tempFaviconUrl}
                         onChange={(e) => setTempFaviconUrl(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="logo-icon">URL do Ícone da Logo</Label>
+                      <Input
+                        id="logo-icon"
+                        placeholder="https://exemplo.com/icon.png"
+                        value={tempLogoIconUrl}
+                        onChange={(e) => setTempLogoIconUrl(e.target.value)}
                       />
                     </div>
                     <Button onClick={handleSaveUrls}>Salvar URLs</Button>
