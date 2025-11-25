@@ -1598,13 +1598,14 @@ export default function ColaboradorDetalhes() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isGrantingAccess}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
+            <Button
+              type="button"
               onClick={handleGrantAccess}
               disabled={isGrantingAccess || !grantPassword}
               className="bg-green-600 text-white hover:bg-green-700"
             >
               {isGrantingAccess ? "Enviando..." : "Confirmar Liberação"}
-            </AlertDialogAction>
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -1645,13 +1646,14 @@ export default function ColaboradorDetalhes() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isRevokingAccess}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
+            <Button
+              type="button"
               onClick={handleRevokeAccess}
               disabled={isRevokingAccess || !revokePassword}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isRevokingAccess ? "Removendo..." : "Confirmar Remoção"}
-            </AlertDialogAction>
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
