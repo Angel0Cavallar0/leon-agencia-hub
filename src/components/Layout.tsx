@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { Sidebar } from "./Sidebar";
 
 interface LayoutProps {
@@ -11,14 +11,20 @@ interface LayoutProps {
 }
 
 export const Layout = ({ children, noPadding = false }: LayoutProps) => {
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
   const mainPadding = noPadding ? "" : "p-8";
   const mainOverflow = noPadding ? "overflow-hidden" : "overflow-y-auto";
+  const sidebarWidth = isSidebarCollapsed ? "ml-20" : "ml-64";
 
   return (
     <div className="flex h-screen bg-background text-foreground">
-      <Sidebar />
+      <Sidebar
+        collapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
+      />
       <main
-        className={`ml-64 flex-1 h-screen min-w-0 overflow-x-hidden ${mainOverflow} ${mainPadding}`}
+        className={`${sidebarWidth} flex-1 h-screen min-w-0 overflow-x-hidden ${mainOverflow} ${mainPadding}`}
       >
         {children}
       </main>
