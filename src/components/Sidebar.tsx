@@ -227,7 +227,7 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
       <div
         className={cn(
           "border-b border-sidebar-border",
-          collapsed ? "flex justify-center p-4" : "p-6"
+          collapsed ? "flex justify-center p-3" : "p-4"
         )}
       >
         {(collapsed ? logoIconUrl : logoUrl) ? (
@@ -235,8 +235,8 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
             src={collapsed ? logoIconUrl || logoUrl : logoUrl}
             alt="Logo"
             className={cn(
-              "h-10 object-contain",
-              collapsed ? "w-10" : "w-auto",
+              "h-9 object-contain",
+              collapsed ? "w-9" : "w-auto",
               collapsed ? "mx-auto" : undefined
             )}
           />
@@ -351,7 +351,7 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
       </nav>
 
       {/* Footer com Logs, Configurações e Sair */}
-      <div className={cn("px-4 py-3 border-t border-sidebar-border", collapsed ? "px-2" : undefined)}>
+      <div className={cn("px-3 py-2 border-t border-sidebar-border", collapsed ? "px-2 py-2" : undefined)}>
         <div className="flex flex-col gap-4">
           <button
             type="button"
@@ -361,7 +361,7 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
               collapsed ? "justify-center" : undefined
             )}
           >
-            <Avatar className="h-10 w-10">
+            <Avatar className="h-9 w-9">
               {profile?.foto_url ? (
                 <AvatarImage src={profile.foto_url} alt={displayName} />
               ) : (
