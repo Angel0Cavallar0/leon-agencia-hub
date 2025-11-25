@@ -213,7 +213,8 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
     };
   }, [hoverTimer, closeTimer]);
 
-  const containerWidth = collapsed ? "w-16" : "w-64";
+  const containerWidth = collapsed ? "w-20" : "w-64";
+  const iconClassName = collapsed ? "h-6 w-6" : "h-5 w-5";
 
   return (
     <aside
@@ -275,7 +276,7 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
                       : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                   )}
                 >
-                  <Icon className="h-5 w-5" />
+                  <Icon className={iconClassName} />
                   {!collapsed && <span className="font-medium">{item.label}</span>}
                 </div>
                 {clickUpOpen && (
@@ -310,7 +311,7 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
               )}
               activeClassName="bg-sidebar-accent text-sidebar-accent-foreground"
             >
-              <Icon className="h-5 w-5" />
+              <Icon className={iconClassName} />
               {!collapsed && <span className="font-medium">{item.label}</span>}
             </NavLink>
           );
@@ -327,7 +328,7 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
             )}
             activeClassName="bg-sidebar-accent text-sidebar-accent-foreground"
           >
-            <Building2 className="h-5 w-5" />
+            <Building2 className={iconClassName} />
             {!collapsed && <span className="font-medium">CRM</span>}
           </NavLink>
         )}
@@ -343,7 +344,7 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
             )}
             activeClassName="bg-sidebar-accent text-sidebar-accent-foreground"
           >
-            <MessageSquare className="h-5 w-5" />
+            <MessageSquare className={iconClassName} />
             {!collapsed && <span className="font-medium">WhatsApp</span>}
           </NavLink>
         )}
@@ -399,7 +400,7 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
                       onClick={onToggleCollapse}
                       className="flex items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-sidebar-accent/10"
                     >
-                      <PanelLeftOpen className="h-5 w-5" />
+                      <PanelLeftOpen className={iconClassName} />
                       <span>Expandir menu</span>
                     </button>
                     {userRole === "admin" && (
@@ -409,7 +410,7 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
                         className="flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-sidebar-accent/10"
                         activeClassName="bg-sidebar-accent/20 text-sidebar-accent-foreground"
                       >
-                        <FileText className="h-5 w-5" />
+                        <FileText className={iconClassName} />
                         <span>Logs</span>
                       </NavLink>
                     )}
@@ -419,7 +420,7 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
                       className="flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-sidebar-accent/10"
                       activeClassName="bg-sidebar-accent/20 text-sidebar-accent-foreground"
                     >
-                      <Settings className="h-5 w-5" />
+                      <Settings className={iconClassName} />
                       <span>Configurações</span>
                     </NavLink>
                     <button
@@ -427,7 +428,7 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
                       onClick={signOut}
                       className="flex items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-sidebar-accent/10"
                     >
-                      <LogOut className="h-5 w-5" />
+                      <LogOut className={iconClassName} />
                       <span>Sair</span>
                     </button>
                   </div>
@@ -444,9 +445,9 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
                       className="flex items-center justify-center p-2 text-sidebar-foreground transition-colors hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
                     >
                       {collapsed ? (
-                        <PanelLeftOpen className="h-5 w-5" />
+                        <PanelLeftOpen className={iconClassName} />
                       ) : (
-                        <PanelLeftClose className="h-5 w-5" />
+                        <PanelLeftClose className={iconClassName} />
                       )}
                       <span className="sr-only">{collapsed ? "Expandir menu" : "Recolher menu"}</span>
                     </button>
@@ -464,7 +465,7 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
                           className="flex items-center justify-center p-2 text-sidebar-foreground transition-colors hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
                           activeClassName="text-sidebar-accent-foreground"
                         >
-                          <FileText className="h-5 w-5" />
+                          <FileText className={iconClassName} />
                           <span className="sr-only">Logs</span>
                         </NavLink>
                       </TooltipTrigger>
@@ -479,7 +480,7 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
                           className="flex items-center justify-center p-2 text-sidebar-foreground transition-colors hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
                           activeClassName="text-sidebar-accent-foreground"
                         >
-                          <Settings className="h-5 w-5" />
+                          <Settings className={iconClassName} />
                           <span className="sr-only">Configurações</span>
                         </NavLink>
                       </TooltipTrigger>
@@ -494,7 +495,7 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
                       aria-label="Sair"
                       className="flex items-center justify-center p-2 text-sidebar-foreground transition-colors hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
                     >
-                      <LogOut className="h-5 w-5" />
+                      <LogOut className={iconClassName} />
                       <span className="sr-only">Sair</span>
                     </button>
                   </TooltipTrigger>
