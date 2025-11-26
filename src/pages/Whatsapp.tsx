@@ -76,6 +76,10 @@ export default function Whatsapp() {
   >({});
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [expandedMedia, setExpandedMedia] = useState<{
+    url: string;
+    type: "image" | "video";
+  } | null>(null);
 
   useEffect(() => {
     const storedWebhook = localStorage.getItem(WEBHOOK_KEY);
@@ -535,7 +539,8 @@ export default function Whatsapp() {
           key={`${message.message_id}-image`}
           src={message.image_url}
           alt="Imagem"
-          className="mt-2 max-h-64 w-full rounded-md object-cover"
+          className="mt-2 max-h-64 w-full cursor-pointer rounded-md object-cover"
+          onClick={() => setExpandedMedia({ url: message.image_url!, type: "image" })}
         />
       );
     }
@@ -545,8 +550,8 @@ export default function Whatsapp() {
         <video
           key={`${message.message_id}-video`}
           src={message.video_url}
-          controls
-          className="mt-2 w-full rounded-md"
+          className="mt-2 w-full cursor-pointer rounded-md"
+          onClick={() => setExpandedMedia({ url: message.video_url!, type: "video" })}
         />
       );
     }
@@ -910,6 +915,52 @@ export default function Whatsapp() {
         </div>
       </div>
       </Layout>
+
+      {expandedMedia && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setExpandedMedia(null)}
+        >
+          <div
+            className="relative h-full w-full max-h-[90vh] max-w-5xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="absolute right-3 top-3 flex gap-2">
+              <a
+                href={expandedMedia.url}
+                download
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-md bg-white/90 px-3 py-2 text-sm font-semibold text-gray-900 shadow hover:bg-white"
+              >
+                Baixar
+              </a>
+              <button
+                type="button"
+                className="rounded-md bg-white/90 px-3 py-2 text-sm font-semibold text-gray-900 shadow hover:bg-white"
+                onClick={() => setExpandedMedia(null)}
+              >
+                ✕
+              </button>
+            </div>
+
+            {expandedMedia.type === "image" ? (
+              <img
+                src={expandedMedia.url}
+                alt="Imagem"
+                className="h-full w-full object-contain"
+              />
+            ) : (
+              <video
+                src={expandedMedia.url}
+                controls
+                autoPlay
+                className="h-full w-full object-contain"
+              />
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }
