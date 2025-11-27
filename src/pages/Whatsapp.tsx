@@ -1,4 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Archive,
+  CheckSquare,
+  Forward,
+  MoreVertical,
+  Trash2,
+} from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +13,14 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -722,6 +737,20 @@ export default function Whatsapp() {
     return chats.find((chat) => chat.id === selectedChat && chat.source === selectedChatSource);
   }, [chats, selectedChat, selectedChatSource]);
 
+  const handleDeleteConversation = () => {
+    if (!selectedChatData) return;
+    toast.info("Funcionalidade de exclusão de conversa em desenvolvimento.");
+  };
+
+  const handleSelectMessages = () => {
+    toast.info("Seleção de mensagens para encaminhar ou excluir estará disponível em breve.");
+  };
+
+  const handleArchiveChat = () => {
+    if (!selectedChatData) return;
+    toast.info("Funcionalidade de arquivar chat em desenvolvimento.");
+  };
+
   return (
     <>
       <audio
@@ -811,6 +840,36 @@ export default function Whatsapp() {
                     {selectedChatData?.isGroup && (
                       <p className="text-xs text-muted-foreground">Grupo</p>
                     )}
+                  </div>
+                  <div className="ml-auto">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-9 w-9">
+                          <MoreVertical className="h-5 w-5" />
+                          <span className="sr-only">Abrir menu do chat</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-64">
+                        <DropdownMenuLabel>Ações do chat</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onSelect={handleDeleteConversation} className="gap-2">
+                          <Trash2 className="h-4 w-4" />
+                          <span>Excluir conversa</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={handleSelectMessages} className="gap-2">
+                          <CheckSquare className="h-4 w-4" />
+                          <span>Selecionar mensagens para excluir ou encaminhar</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={handleSelectMessages} className="gap-2">
+                          <Forward className="h-4 w-4" />
+                          <span>Encaminhar mensagens</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={handleArchiveChat} className="gap-2">
+                          <Archive className="h-4 w-4" />
+                          <span>Arquivar chat</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
 
