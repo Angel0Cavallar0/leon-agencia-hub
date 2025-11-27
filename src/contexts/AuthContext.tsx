@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
-type AppRole = "admin" | "gerente" | "supervisor" | "assistente" | "geral" | "user";
+type AppRole = "admin" | "gerente" | "supervisor" | "assistente" | "geral";
 
 interface AuthContextType {
   user: User | null;
@@ -21,8 +21,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<AppRole | null>(null);
+  const [allowedRolesCache, setAllowedRolesCache] = useState<AppRole[] | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
+  const validRoles: AppRole[] = ["admin", "gerente", "supervisor", "assistente", "geral"];
+  const defaultAllowedRoles: AppRole[] = ["admin", "supervisor"];
 
   const fetchUserRole = async (userId: string): Promise<AppRole | null> => {
     const { data, error } = await supabase
@@ -39,17 +43,66 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return (data?.role as AppRole | null) || null;
   };
 
+  const parseAllowedRoles = (value: unknown): AppRole[] => {
+    if (Array.isArray(value)) {
+      const validValues = value.filter(
+        (item): item is AppRole => typeof item === "string" && validRoles.includes(item)
+      );
+      return Array.from(new Set(validValues));
+    }
+
+    if (typeof value === "string" && validRoles.includes(value as AppRole)) {
+      return [value as AppRole];
+    }
+
+    return [];
+  };
+
+  const fetchAllowedRoles = async (): Promise<AppRole[]> => {
+    if (allowedRolesCache) {
+      return allowedRolesCache;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("global_settings")
+        .select("value")
+        .eq("key", "allowed_access_levels")
+        .maybeSingle();
+
+      if (error) throw error;
+
+      const parsedRoles = data?.value ? parseAllowedRoles(data.value) : [];
+      const resolvedRoles = parsedRoles.length ? parsedRoles : defaultAllowedRoles;
+      setAllowedRolesCache(resolvedRoles);
+      return resolvedRoles;
+    } catch (error) {
+      console.error("Erro ao carregar perfis permitidos:", error);
+      setAllowedRolesCache(defaultAllowedRoles);
+      return defaultAllowedRoles;
+    }
+  };
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        
+
         if (session?.user) {
           setTimeout(async () => {
             const role = await fetchUserRole(session.user.id);
-            setUserRole(role);
-            setLoading(false);
+            const allowedRoles = await fetchAllowedRoles();
+
+            if (role && allowedRoles.includes(role)) {
+              setUserRole(role);
+              setLoading(false);
+            } else {
+              await supabase.auth.signOut();
+              setUserRole(null);
+              setLoading(false);
+              toast.error("Usuário sem permissão para acessar o painel.");
+            }
           }, 0);
         } else {
           setUserRole(null);
@@ -61,12 +114,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      
+
       if (session?.user) {
         setTimeout(async () => {
           const role = await fetchUserRole(session.user.id);
-          setUserRole(role);
-          setLoading(false);
+          const allowedRoles = await fetchAllowedRoles();
+
+          if (role && allowedRoles.includes(role)) {
+            setUserRole(role);
+            setLoading(false);
+          } else {
+            await supabase.auth.signOut();
+            setUserRole(null);
+            setLoading(false);
+            toast.error("Usuário sem permissão para acessar o painel.");
+          }
         }, 0);
       } else {
         setLoading(false);
@@ -88,8 +150,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     if (data.user) {
       const role = await fetchUserRole(data.user.id);
-      
-      if (role !== "admin" && role !== "supervisor") {
+
+      const allowedRoles = await fetchAllowedRoles();
+
+      if (!role || !allowedRoles.includes(role)) {
         await supabase.auth.signOut();
         throw new Error("Usuário sem permissão para acessar o painel.");
       }
