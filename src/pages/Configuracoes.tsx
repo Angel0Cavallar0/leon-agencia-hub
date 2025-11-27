@@ -68,6 +68,11 @@ export default function Configuracoes() {
   );
   const [isLoadingWebhook, setIsLoadingWebhook] = useState(true);
   const [isSavingWebhook, setIsSavingWebhook] = useState(false);
+  const [n8nUrl, setN8nUrl] = useState(
+    () => localStorage.getItem("n8n-url") || "https://n8n.camaleon.com.br/"
+  );
+  const [isLoadingN8nUrl, setIsLoadingN8nUrl] = useState(true);
+  const [isSavingN8nUrl, setIsSavingN8nUrl] = useState(false);
   const [minAccessLevel, setMinAccessLevel] = useState<AccessLevel>("basico");
   const [isLoadingAccessLevel, setIsLoadingAccessLevel] = useState(true);
   const [isSavingAccessLevel, setIsSavingAccessLevel] = useState(false);
@@ -83,12 +88,18 @@ export default function Configuracoes() {
 
         if (error) throw error;
 
-        const webhookValue =
-          typeof data?.value === "string"
-            ? data.value
-            : typeof (data?.value as any)?.url === "string"
-              ? (data?.value as any).url
-              : "";
+        const webhookValue = (() => {
+          if (typeof data?.value === "string") return data.value;
+          if (
+            data?.value &&
+            typeof data.value === "object" &&
+            "url" in data.value &&
+            typeof (data.value as { url?: unknown }).url === "string"
+          ) {
+            return (data.value as { url: string }).url;
+          }
+          return "";
+        })();
 
         if (webhookValue) {
           setWhatsappWebhook(webhookValue);
@@ -109,6 +120,53 @@ export default function Configuracoes() {
     };
 
     loadWebhook();
+  }, []);
+
+  useEffect(() => {
+    const loadN8nUrl = async () => {
+      const storedUrl = localStorage.getItem("n8n-url");
+      if (storedUrl) {
+        setN8nUrl(storedUrl);
+        setIsLoadingN8nUrl(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from("global_settings")
+          .select("value")
+          .eq("key", "n8n_url")
+          .maybeSingle();
+
+        if (error) throw error;
+
+        const resolvedUrl =
+          typeof data?.value === "string"
+            ? data.value
+            : data?.value &&
+                typeof data.value === "object" &&
+                "url" in data.value &&
+                typeof (data.value as { url?: unknown }).url === "string"
+              ? (data.value as { url: string }).url
+              : "https://n8n.camaleon.com.br/";
+
+        setN8nUrl(resolvedUrl);
+        localStorage.setItem("n8n-url", resolvedUrl);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorStack = error instanceof Error ? error.stack : undefined;
+
+        await logger.error("Erro ao carregar URL do n8n", "N8N_URL_LOAD", {
+          errorMessage,
+          errorStack,
+        });
+        toast.error("Não foi possível carregar o link do n8n");
+      } finally {
+        setIsLoadingN8nUrl(false);
+      }
+    };
+
+    loadN8nUrl();
   }, []);
 
   useEffect(() => {
@@ -179,7 +237,8 @@ export default function Configuracoes() {
     
     const max = Math.max(r, g, b);
     const min = Math.min(r, g, b);
-    let h = 0, s = 0, l = (max + min) / 2;
+    let h = 0, s = 0;
+    const l = (max + min) / 2;
     
     if (max !== min) {
       const d = max - min;
@@ -208,6 +267,7 @@ export default function Configuracoes() {
             <TabsTrigger value="organizational">Organização</TabsTrigger>
             <TabsTrigger value="access">Acesso</TabsTrigger>
             <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
+            <TabsTrigger value="n8n">n8n</TabsTrigger>
           </TabsList>
 
           <TabsContent value="appearance">
@@ -490,6 +550,62 @@ export default function Configuracoes() {
                   }}
                 >
                   {isSavingWebhook ? "Salvando..." : "Salvar webhook padrão"}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="n8n">
+            <Card>
+              <CardHeader>
+                <CardTitle>Integração com n8n</CardTitle>
+                <CardDescription>Atualize o link carregado no navegador interno.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="n8n-url">URL do n8n</Label>
+                  <Input
+                    id="n8n-url"
+                    placeholder="https://n8n.camaleon.com.br/"
+                    disabled={isLoadingN8nUrl}
+                    value={n8nUrl}
+                    onChange={(e) => setN8nUrl(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Este link será usado para abrir o n8n dentro do painel, preservando o mesmo controle de acesso.
+                  </p>
+                </div>
+                <Button
+                  disabled={isSavingN8nUrl}
+                  onClick={async () => {
+                    setIsSavingN8nUrl(true);
+                    try {
+                      const { error } = await supabase.from("global_settings").upsert({
+                        key: "n8n_url",
+                        value: n8nUrl,
+                      });
+
+                      if (error) throw error;
+
+                      localStorage.setItem("n8n-url", n8nUrl);
+                      await logger.success("URL do n8n atualizada", { url: n8nUrl });
+                      toast.success("Link do n8n salvo como padrão!");
+                    } catch (error: unknown) {
+                      const errorMessage = error instanceof Error ? error.message : String(error);
+                      const errorStack = error instanceof Error ? error.stack : undefined;
+
+                      await logger.error("Erro ao salvar URL do n8n", "N8N_URL_SAVE", {
+                        errorMessage,
+                        errorStack,
+                        url: n8nUrl,
+                      });
+                      toast.error("Erro ao salvar link do n8n: " + errorMessage);
+                    } finally {
+                      setIsSavingN8nUrl(false);
+                    }
+                  }}
+                >
+                  {isSavingN8nUrl ? "Salvando..." : "Salvar link"}
                 </Button>
               </CardContent>
             </Card>
