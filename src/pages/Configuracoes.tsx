@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 
 export default function Configuracoes() {
-  type AccessLevel = "admin" | "gerente" | "supervisor" | "assistente" | "basico";
+  type AccessLevel = "admin" | "manager" | "supervisor" | "assistent" | "basic";
 
   const DEFAULT_N8N_URL = "https://n8n.camaleon.com.br/";
   const normalizeN8nUrl = (url: string) => {
@@ -36,7 +36,7 @@ export default function Configuracoes() {
       description: "Acesso total ao sistema, incluindo a página de configuração.",
     },
     {
-      value: "gerente",
+      value: "manager",
       label: "Gerente",
       description:
         "Acesso amplo, sem a página de configuração. Pode ver dados sensíveis e editar informações críticas controladas.",
@@ -47,13 +47,13 @@ export default function Configuracoes() {
       description: "Pode visualizar informações sensíveis dos colaboradores, porém sem permissão de edição.",
     },
     {
-      value: "assistente",
+      value: "assistent",
       label: "Assistente",
       description:
         "Uso operacional do sistema, WhatsApp e CRM (se liberados), sem acesso a dados sensíveis ou edição de registros.",
     },
     {
-      value: "basico",
+      value: "basic",
       label: "Básico",
       description: "Acesso restrito às próprias informações, sem visualizar ou alterar dados de terceiros.",
     },
@@ -90,7 +90,7 @@ export default function Configuracoes() {
   );
   const [isLoadingN8nUrl, setIsLoadingN8nUrl] = useState(true);
   const [isSavingN8nUrl, setIsSavingN8nUrl] = useState(false);
-  const [minAccessLevel, setMinAccessLevel] = useState<AccessLevel>("basico");
+  const [minAccessLevel, setMinAccessLevel] = useState<AccessLevel>("basic");
   const [isLoadingAccessLevel, setIsLoadingAccessLevel] = useState(true);
   const [isSavingAccessLevel, setIsSavingAccessLevel] = useState(false);
 

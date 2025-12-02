@@ -25,26 +25,30 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 
-const mainMenuItems = [
+type MenuItem = {
+  icon: typeof Home;
+  label: string;
+  path: string;
+  submenu?: { label: string; path: string }[];
+};
+
+const menuItems: MenuItem[] = [
   { icon: Home, label: "Home", path: "/home" },
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
   { icon: Users, label: "Clientes", path: "/clientes" },
   { icon: UserCog, label: "Colaboradores", path: "/colaboradores" },
+  {
+    icon: MousePointerClick,
+    label: "ClickUp",
+    path: "/clickup",
+    submenu: [
+      { label: "Responsáveis", path: "/clickup/responsaveis" },
+      { label: "Tarefas", path: "/clickup/tarefas" },
+      { label: "Pastas", path: "/clickup/pastas" },
+      { label: "Listas", path: "/clickup/listas" },
+    ],
+  },
 ];
-
-const clickUpMenuItem = {
-  icon: MousePointerClick,
-  label: "ClickUp",
-  path: "/clickup",
-  submenu: [
-    { label: "Responsáveis", path: "/clickup/responsaveis" },
-    { label: "Tarefas", path: "/clickup/tarefas" },
-    { label: "Pastas", path: "/clickup/pastas" },
-    { label: "Listas", path: "/clickup/listas" },
-  ],
-} as const;
-
-const menuItems = [...mainMenuItems, clickUpMenuItem];
 
 type SidebarProfile = {
   id_colaborador: string | null;

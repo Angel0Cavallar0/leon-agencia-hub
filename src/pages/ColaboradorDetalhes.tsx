@@ -121,13 +121,27 @@ export default function ColaboradorDetalhes() {
     contato_emergencia_telefone: string;
   };
 
-  type AccessLevel = "admin" | "gerente" | "supervisor" | "assistente" | "geral";
-  type CrmAccessLevel = Exclude<AccessLevel, "geral"> | "negado";
+  type AccessLevel = "admin" | "manager" | "supervisor" | "assistent" | "basic";
+  type CrmAccessLevel = Database["public"]["Enums"]["crm_access_level_enum"];
   type BinaryAccess = "sim" | "nao";
+
+  // Mapping from new AccessLevel to CrmAccessLevel (database values)
+  const accessToCrmLevel = (level: AccessLevel): CrmAccessLevel => {
+    switch (level) {
+      case "admin": return "admin";
+      case "manager": return "gerente";
+      case "supervisor": return "supervisor";
+      case "assistent": return "assistente";
+      case "basic": return "negado";
+    }
+  };
+
+  // Mapping from CrmAccessLevel to AccessLevel for display
+  const crmLevelToAccess = (level: CrmAccessLevel): CrmAccessLevel => level;
 
   const [colaborador, setColaborador] = useState<EditableColaborador | null>(null);
   const [privateData, setPrivateData] = useState<PrivateData | null>(null);
-  const [role, setRole] = useState<AccessLevel>("geral");
+  const [role, setRole] = useState<AccessLevel>("basic");
   const [status, setStatus] = useState<"ativo" | "ferias" | "afastado" | "desligado">("ativo");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -215,15 +229,21 @@ export default function ColaboradorDetalhes() {
   const normalizeRole = (value: string | null | undefined): AccessLevel => {
     switch (value) {
       case "admin":
-      case "gerente":
+      case "manager":
       case "supervisor":
-      case "assistente":
-      case "geral":
+      case "assistent":
+      case "basic":
         return value;
+      // Map old values to new
+      case "gerente":
+        return "manager";
+      case "assistente":
+        return "assistent";
+      case "geral":
       case "user":
-        return "geral";
+        return "basic";
       default:
-        return "geral";
+        return "basic";
     }
   };
 
@@ -234,15 +254,23 @@ export default function ColaboradorDetalhes() {
       return "negado";
     }
 
-    const normalized = normalizeRole(value);
-    return normalized === "geral" ? "negado" : normalized;
+    // Map string values to CrmAccessLevel
+    switch (value) {
+      case "admin": return "admin";
+      case "gerente": 
+      case "manager": return "gerente";
+      case "supervisor": return "supervisor";
+      case "assistente":
+      case "assistent": return "assistente";
+      default: return "negado";
+    }
   };
 
   const normalizeBinary = (value: boolean | null | undefined): BinaryAccess => (value ? "sim" : "nao");
 
   const binaryToBoolean = (value: BinaryAccess) => value === "sim";
 
-  const resetUserRoleData = (fallbackRole: AccessLevel = "geral") => {
+  const resetUserRoleData = (fallbackRole: AccessLevel = "basic") => {
     setUserRoleRowId(null);
     setRole(fallbackRole);
     setWppAccess("nao");

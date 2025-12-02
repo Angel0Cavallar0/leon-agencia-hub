@@ -194,13 +194,13 @@ export default function Whatsapp() {
         });
       }
 
-      const chatMessages = (chatData || []).map((message) => ({
-        ...(message as ChatMessage),
+      const chatMessages: ChatMessage[] = (chatData || []).map((message) => ({
+        ...message,
         source: "chat" as const,
       }));
 
-      const groupMessages = (groupData || []).map((message) => ({
-        ...(message as GroupMessage),
+      const groupMessages: GroupMessage[] = (groupData || []).map((message) => ({
+        ...message,
         source: "group" as const,
       }));
 
@@ -693,15 +693,21 @@ export default function Whatsapp() {
       setSelectedChat(newRecord.group_id);
       setSelectedChatSource("group");
     } else {
+      // Type guard for ChatMessage properties
+      const isChatMsg = (msg: WhatsappMessage | undefined): msg is ChatMessage => 
+        msg?.source === "chat";
+      
+      const chatBase = isChatMsg(baseMessage) ? baseMessage : undefined;
+      
       const newRecord: ChatMessage = {
-        chat_id: baseMessage?.chat_id || selectedChat || crypto.randomUUID(),
+        chat_id: chatBase?.chat_id || selectedChat || crypto.randomUUID(),
         message_id: crypto.randomUUID(),
-        numero_wpp: baseMessage?.numero_wpp || null,
-        chat_name: baseMessage?.chat_name || "Chat sem nome",
+        numero_wpp: chatBase?.numero_wpp || null,
+        chat_name: chatBase?.chat_name || "Chat sem nome",
         direcao: "SENT",
-        foto_contato: baseMessage?.foto_contato || null,
-        encaminhado: baseMessage?.encaminhado ?? false,
-        is_group: baseMessage?.is_group ?? false,
+        foto_contato: chatBase?.foto_contato || null,
+        encaminhado: chatBase?.encaminhado ?? false,
+        is_group: chatBase?.is_group ?? false,
         is_edited: false,
         message: formattedContent,
         reference_message_id: replyTo?.message_id || baseMessage?.message_id || null,
