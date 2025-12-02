@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
-type AppRole = "admin" | "gerente" | "supervisor" | "assistente" | "geral" | "user";
+type AppRole = "admin" | "manager" | "supervisor" | "assistent" | "basic";
 
 interface AuthContextType {
   user: User | null;
@@ -89,7 +89,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (data.user) {
       const role = await fetchUserRole(data.user.id);
       
-      if (role !== "admin" && role !== "supervisor") {
+      const allowedRoles: AppRole[] = ["admin", "manager", "supervisor", "assistent"];
+      if (!role || !allowedRoles.includes(role)) {
         await supabase.auth.signOut();
         throw new Error("Usuário sem permissão para acessar o painel.");
       }

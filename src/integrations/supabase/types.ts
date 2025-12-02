@@ -16,49 +16,67 @@ export type Database = {
     Tables: {
       chat_messages: {
         Row: {
+          audio_transcription: string | null
+          audio_url: string | null
           chat_id: string
           chat_name: string | null
           created_at: string | null
           direcao: string
+          document_url: string | null
           encaminhado: boolean | null
           foto_contato: string | null
           id: string
+          image_url: string | null
           is_edited: boolean | null
           is_group: boolean | null
           message: string | null
           message_id: string
           numero_wpp: string | null
+          read_status: boolean
           reference_message_id: string | null
+          video_url: string | null
         }
         Insert: {
+          audio_transcription?: string | null
+          audio_url?: string | null
           chat_id: string
           chat_name?: string | null
           created_at?: string | null
           direcao: string
+          document_url?: string | null
           encaminhado?: boolean | null
           foto_contato?: string | null
           id?: string
+          image_url?: string | null
           is_edited?: boolean | null
           is_group?: boolean | null
           message?: string | null
           message_id: string
           numero_wpp?: string | null
+          read_status?: boolean
           reference_message_id?: string | null
+          video_url?: string | null
         }
         Update: {
+          audio_transcription?: string | null
+          audio_url?: string | null
           chat_id?: string
           chat_name?: string | null
           created_at?: string | null
           direcao?: string
+          document_url?: string | null
           encaminhado?: boolean | null
           foto_contato?: string | null
           id?: string
+          image_url?: string | null
           is_edited?: boolean | null
           is_group?: boolean | null
           message?: string | null
           message_id?: string
           numero_wpp?: string | null
+          read_status?: boolean
           reference_message_id?: string | null
+          video_url?: string | null
         }
         Relationships: []
       }
@@ -472,6 +490,72 @@ export type Database = {
         }
         Relationships: []
       }
+      group_messages: {
+        Row: {
+          audio_transcription: string | null
+          audio_url: string | null
+          created_at: string | null
+          direcao: string | null
+          document_url: string | null
+          encaminhada: boolean
+          group_id: string | null
+          group_name: string | null
+          group_photo: string | null
+          id: string
+          image_url: string | null
+          is_edited: boolean
+          is_group: boolean
+          message: string | null
+          message_id: string | null
+          nome_wpp: string | null
+          read_status: boolean
+          sender_phone: string | null
+          video_url: string | null
+        }
+        Insert: {
+          audio_transcription?: string | null
+          audio_url?: string | null
+          created_at?: string | null
+          direcao?: string | null
+          document_url?: string | null
+          encaminhada: boolean
+          group_id?: string | null
+          group_name?: string | null
+          group_photo?: string | null
+          id?: string
+          image_url?: string | null
+          is_edited: boolean
+          is_group: boolean
+          message?: string | null
+          message_id?: string | null
+          nome_wpp?: string | null
+          read_status?: boolean
+          sender_phone?: string | null
+          video_url?: string | null
+        }
+        Update: {
+          audio_transcription?: string | null
+          audio_url?: string | null
+          created_at?: string | null
+          direcao?: string | null
+          document_url?: string | null
+          encaminhada?: boolean
+          group_id?: string | null
+          group_name?: string | null
+          group_photo?: string | null
+          id?: string
+          image_url?: string | null
+          is_edited?: boolean
+          is_group?: boolean
+          message?: string | null
+          message_id?: string | null
+          nome_wpp?: string | null
+          read_status?: boolean
+          sender_phone?: string | null
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       informacoes_tasks_clickup: {
         Row: {
           audiovisual: boolean | null
@@ -612,7 +696,6 @@ export type Database = {
           id: string
           role: Database["public"]["Enums"]["app_role"] | null
           user_id: string
-          n8n_access?: boolean | null
           wpp_acess: boolean | null
         }
         Insert: {
@@ -624,7 +707,6 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"] | null
           user_id: string
-          n8n_access?: boolean | null
           wpp_acess?: boolean | null
         }
         Update: {
@@ -636,7 +718,6 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"] | null
           user_id?: string
-          n8n_access?: boolean | null
           wpp_acess?: boolean | null
         }
         Relationships: []
@@ -664,7 +745,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "supervisor" | "gerente" | "assistente" | "geral"
+      app_role: "admin" | "manager" | "supervisor" | "assistent" | "basic"
       crm_access_level_enum:
         | "admin"
         | "gerente"
@@ -798,7 +879,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "supervisor", "gerente", "assistente", "geral"],
+      app_role: ["admin", "manager", "supervisor", "assistent", "basic"],
       crm_access_level_enum: [
         "admin",
         "gerente",

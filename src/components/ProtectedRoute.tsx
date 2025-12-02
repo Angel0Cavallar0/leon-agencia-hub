@@ -19,7 +19,8 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
-  if (!user || (userRole !== "admin" && userRole !== "supervisor")) {
+  const allowedRoles = ["admin", "manager", "supervisor", "assistent"];
+  if (!user || !userRole || !allowedRoles.includes(userRole)) {
     return <Navigate to="/login" replace />;
   }
 
