@@ -236,7 +236,7 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 flex h-full flex-col border-r border-sidebar-border bg-sidebar transition-all duration-200",
+        "fixed inset-y-0 left-0 z-50 flex h-full flex-col border-r border-sidebar-border bg-sidebar transition-all duration-200",
         containerWidth
       )}
     >
@@ -297,7 +297,7 @@ export function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
                   {!collapsed && <span className="font-medium">{item.label}</span>}
                 </div>
                 {clickUpOpen && (
-                  <div className="absolute left-full top-0 z-20 ml-3 w-56 rounded-lg bg-sidebar-accent text-sidebar-accent-foreground shadow-lg">
+                  <div className="absolute left-full top-0 z-[60] ml-3 w-56 rounded-lg bg-sidebar-accent text-sidebar-accent-foreground shadow-lg">
                     <div className="space-y-1 p-3">
                       {item.submenu.map((subItem) => (
                         <NavLink
