@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -102,6 +102,22 @@ export function NewDealDialog({
   });
 
   const filteredStages = stages.filter((s) => s.pipeline_id === selectedPipelineId);
+
+  useEffect(() => {
+    if (defaultPipelineId) {
+      setSelectedPipelineId(defaultPipelineId);
+      form.setValue("pipeline_id", defaultPipelineId);
+    }
+  }, [defaultPipelineId, form]);
+
+  useEffect(() => {
+    const [firstStage] = filteredStages;
+    const currentStage = form.getValues("stage_id");
+
+    if (!currentStage && firstStage) {
+      form.setValue("stage_id", firstStage.id);
+    }
+  }, [filteredStages, form]);
 
   const handlePipelineChange = (value: string) => {
     setSelectedPipelineId(value);

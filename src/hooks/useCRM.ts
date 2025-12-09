@@ -87,15 +87,25 @@ export interface DealNote {
   creator?: { id: string; nome: string; sobrenome: string | null };
 }
 
-export function usePipelines() {
+export interface CRMSetting {
+  id: string;
+  key: string;
+  value: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export function usePipelines(includeInactive = false) {
   return useQuery({
-    queryKey: ["crm-pipelines"],
+    queryKey: ["crm-pipelines", includeInactive],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("crm_pipelines")
-        .select("*")
-        .eq("is_active", true)
-        .order("order_index");
+      let query = supabase.from("crm_pipelines").select("*").order("order_index");
+
+      if (!includeInactive) {
+        query = query.eq("is_active", true);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       return data as Pipeline[];
@@ -399,4 +409,57 @@ export function useCreateDealNote() {
 export function useIsCRMAdmin() {
   const { userRole } = useAuth();
   return userRole === "admin" || userRole === "manager";
+}
+
+export function useCRMAccess() {
+  return useQuery({
+    queryKey: ["crm-access"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("user_has_crm_access");
+
+      if (error) throw error;
+      return Boolean(data);
+    },
+  });
+}
+
+export function useCRMSetting(key: string) {
+  return useQuery({
+    queryKey: ["crm-settings", key],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("crm_settings")
+        .select("*")
+        .eq("key", key)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data as CRMSetting | null;
+    },
+    enabled: !!key,
+  });
+}
+
+export function useUpsertCRMSetting() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ key, value }: { key: string; value: Record<string, unknown> }) => {
+      const { data, error } = await supabase
+        .from("crm_settings")
+        .upsert({ key, value }, { onConflict: "key" })
+        .select()
+        .maybeSingle();
+
+      if (error) throw error;
+      return data as CRMSetting | null;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["crm-settings", variables.key] });
+      toast.success("Configuração salva com sucesso!");
+    },
+    onError: (error) => {
+      toast.error("Erro ao salvar configuração: " + error.message);
+    },
+  });
 }

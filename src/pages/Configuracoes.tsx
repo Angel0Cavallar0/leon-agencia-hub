@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 import { useAuth } from "@/contexts/AuthContext";
+import { CRMSettingsDialog } from "@/components/crm/CRMSettingsDialog";
+import { useCRMSetting, usePipelines, useStages, useUpsertCRMSetting } from "@/hooks/useCRM";
 
 export default function Configuracoes() {
   type AccessLevel = "admin" | "manager" | "supervisor" | "assistent" | "basic";
@@ -76,6 +78,8 @@ export default function Configuracoes() {
     saveAsGlobal
   } = useTheme();
   const { userRole } = useAuth();
+  const isCRMAdmin = userRole === "admin" || userRole === "manager";
+  const isFullAdmin = userRole === "admin";
   const [tempLogoUrl, setTempLogoUrl] = useState(logoUrl);
   const [tempLogoIconUrl, setTempLogoIconUrl] = useState(logoIconUrl);
   const [tempFaviconUrl, setTempFaviconUrl] = useState(faviconUrl);
@@ -95,6 +99,12 @@ export default function Configuracoes() {
   const [minAccessLevel, setMinAccessLevel] = useState<AccessLevel>("basic");
   const [isLoadingAccessLevel, setIsLoadingAccessLevel] = useState(true);
   const [isSavingAccessLevel, setIsSavingAccessLevel] = useState(false);
+  const [isCRMSettingsOpen, setIsCRMSettingsOpen] = useState(false);
+  const [crmWebhookUrl, setCrmWebhookUrl] = useState("");
+  const { data: crmPipelines = [] } = usePipelines(true);
+  const { data: crmStages = [] } = useStages();
+  const { data: crmWebhookSetting } = useCRMSetting("crm_webhook");
+  const upsertCRMSetting = useUpsertCRMSetting();
 
   useEffect(() => {
     const loadWebhook = async () => {
@@ -145,6 +155,20 @@ export default function Configuracoes() {
 
     loadWebhook();
   }, [userRole]);
+
+  useEffect(() => {
+    if (crmWebhookSetting?.value && typeof crmWebhookSetting.value === "object") {
+      const value = crmWebhookSetting.value as { url?: unknown };
+      if (typeof value.url === "string") {
+        setCrmWebhookUrl(value.url);
+        return;
+      }
+    }
+
+    if (typeof crmWebhookSetting?.value === "string") {
+      setCrmWebhookUrl(crmWebhookSetting.value);
+    }
+  }, [crmWebhookSetting]);
 
   useEffect(() => {
     const loadN8nUrl = async () => {
@@ -243,6 +267,10 @@ export default function Configuracoes() {
     toast.success("Configurações salvas com sucesso!");
   };
 
+  const handleSaveCRMWebhook = async () => {
+    await upsertCRMSetting.mutateAsync({ key: "crm_webhook", value: { url: crmWebhookUrl } });
+  };
+
   const hslToHex = (hsl: string): string => {
     const [h, s, l] = hsl.split(" ").map((v) => parseFloat(v));
     const hDecimal = h / 360;
@@ -288,7 +316,9 @@ export default function Configuracoes() {
     return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
   };
 
-  if (userRole !== "admin") {
+  const defaultTab = isFullAdmin ? "appearance" : "crm";
+
+  if (!isCRMAdmin) {
     return (
       <Layout>
         <div className="max-w-3xl">
@@ -313,19 +343,26 @@ export default function Configuracoes() {
           <p className="text-muted-foreground">Personalize o sistema conforme as necessidades da sua equipe</p>
         </div>
 
-        <Tabs defaultValue="appearance" className="space-y-6">
+        <Tabs defaultValue={defaultTab} className="space-y-6">
           <TabsList>
-            <TabsTrigger value="appearance">Aparência</TabsTrigger>
-            <TabsTrigger value="organizational">Organização</TabsTrigger>
-            <TabsTrigger value="access">Acesso</TabsTrigger>
-            <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
-            <TabsTrigger value="n8n">n8n</TabsTrigger>
+            {isFullAdmin && (
+              <>
+                <TabsTrigger value="appearance">Aparência</TabsTrigger>
+                <TabsTrigger value="organizational">Organização</TabsTrigger>
+                <TabsTrigger value="access">Acesso</TabsTrigger>
+                <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
+                <TabsTrigger value="n8n">n8n</TabsTrigger>
+              </>
+            )}
+            <TabsTrigger value="crm">CRM</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="appearance">
-            <Card>
-              <CardHeader>
-                <CardTitle>Aparência</CardTitle>
+          {isFullAdmin && (
+            <>
+              <TabsContent value="appearance">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Aparência</CardTitle>
                 <CardDescription>
                   Centralize as definições de identidade visual, cores e tema do sistema
                 </CardDescription>
@@ -443,25 +480,25 @@ export default function Configuracoes() {
                     />
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
-          <TabsContent value="organizational">
-            <Card>
-              <CardHeader>
-                <CardTitle>Organização</CardTitle>
+              <TabsContent value="organizational">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Organização</CardTitle>
                 <CardDescription>Defina preferências administrativas e padrões da empresa</CardDescription>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
                   Em breve você poderá configurar preferências organizacionais como nomenclatura de equipes e fluxos de aprovação.
                 </p>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
-          <TabsContent value="access">
+              <TabsContent value="access">
             <Card>
               <CardHeader>
                 <CardTitle>Controle de acesso ao sistema</CardTitle>
@@ -552,7 +589,7 @@ export default function Configuracoes() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="whatsapp">
+              <TabsContent value="whatsapp">
             <Card>
               <CardHeader>
                 <CardTitle>Integração com WhatsApp</CardTitle>
@@ -610,7 +647,7 @@ export default function Configuracoes() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="n8n">
+              <TabsContent value="n8n">
             <Card>
               <CardHeader>
                 <CardTitle>Integração com n8n</CardTitle>
@@ -672,7 +709,48 @@ export default function Configuracoes() {
               </CardContent>
             </Card>
           </TabsContent>
+            </>
+          )}
+
+          <TabsContent value="crm">
+            <Card>
+              <CardHeader>
+                <CardTitle>Configurações do CRM</CardTitle>
+                <CardDescription>Gerencie integrações e funis do módulo de CRM.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="crm-webhook">Webhook do CRM</Label>
+                  <Input
+                    id="crm-webhook"
+                    placeholder="https://sua-url.com/webhook"
+                    value={crmWebhookUrl}
+                    onChange={(e) => setCrmWebhookUrl(e.target.value)}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Salve aqui a URL que receberá eventos do CRM, como mudanças de status e novos negócios.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <Button variant="outline" onClick={() => setIsCRMSettingsOpen(true)}>
+                    Gerenciar funis e etapas
+                  </Button>
+                  <Button onClick={handleSaveCRMWebhook} disabled={upsertCRMSetting.isPending}>
+                    {upsertCRMSetting.isPending ? "Salvando..." : "Salvar webhook"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
+
+        <CRMSettingsDialog
+          open={isCRMSettingsOpen}
+          onOpenChange={setIsCRMSettingsOpen}
+          pipelines={crmPipelines}
+          stages={crmStages}
+        />
       </div>
     </Layout>
   );
