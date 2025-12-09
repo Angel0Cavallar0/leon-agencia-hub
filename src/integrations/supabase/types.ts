@@ -466,6 +466,314 @@ export type Database = {
           },
         ]
       }
+      crm_companies: {
+        Row: {
+          address: string | null
+          city: string | null
+          created_at: string | null
+          created_by: string | null
+          document: string | null
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          state: string | null
+          updated_at: string | null
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          document?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          state?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          document?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          state?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
+      crm_contacts: {
+        Row: {
+          company_id: string | null
+          created_at: string | null
+          created_by: string | null
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          position: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          position?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          position?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_contacts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "crm_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_deal_notes: {
+        Row: {
+          content: string
+          created_at: string | null
+          created_by: string | null
+          deal_id: string
+          id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          created_by?: string | null
+          deal_id: string
+          id?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          created_by?: string | null
+          deal_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_deal_notes_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "crm_deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_deals: {
+        Row: {
+          closed_at: string | null
+          company_id: string | null
+          contact_id: string | null
+          created_at: string | null
+          expected_close_date: string | null
+          id: string
+          notes: string | null
+          owner_id: string
+          pipeline_id: string
+          stage_id: string
+          status: string | null
+          title: string
+          updated_at: string | null
+          value: number | null
+        }
+        Insert: {
+          closed_at?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          expected_close_date?: string | null
+          id?: string
+          notes?: string | null
+          owner_id: string
+          pipeline_id: string
+          stage_id: string
+          status?: string | null
+          title: string
+          updated_at?: string | null
+          value?: number | null
+        }
+        Update: {
+          closed_at?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          expected_close_date?: string | null
+          id?: string
+          notes?: string | null
+          owner_id?: string
+          pipeline_id?: string
+          stage_id?: string
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_deals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "crm_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_deals_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_deals_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "crm_pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_deals_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "crm_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_pipelines: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          name: string
+          order_index: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name: string
+          order_index?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          order_index?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      crm_settings: {
+        Row: {
+          id: string
+          key: string
+          updated_at: string | null
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          id?: string
+          key: string
+          updated_at?: string | null
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          id?: string
+          key?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
+      crm_stages: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          id: string
+          is_lost: boolean | null
+          is_won: boolean | null
+          name: string
+          order_index: number | null
+          pipeline_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          is_lost?: boolean | null
+          is_won?: boolean | null
+          name: string
+          order_index?: number | null
+          pipeline_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          is_lost?: boolean | null
+          is_won?: boolean | null
+          name?: string
+          order_index?: number | null
+          pipeline_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_stages_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "crm_pipelines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       global_settings: {
         Row: {
           id: string
@@ -739,10 +1047,13 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       user_can_manage_app_data: { Args: never; Returns: boolean }
       user_can_view_app_data: { Args: never; Returns: boolean }
+      user_deal_ids: { Args: never; Returns: string[] }
       user_has_any_role: {
         Args: { required_roles: Database["public"]["Enums"]["app_role"][] }
         Returns: boolean
       }
+      user_has_crm_access: { Args: never; Returns: boolean }
+      user_is_crm_admin: { Args: never; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "manager" | "supervisor" | "assistent" | "basic"
