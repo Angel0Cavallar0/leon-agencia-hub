@@ -110,7 +110,25 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply h-screen overflow-hidden bg-background text-foreground;
+    @apply min-h-screen overflow-y-scroll bg-background text-foreground;
+    color-scheme: light;
+    scrollbar-color: rgba(0, 0, 0, 0.35) transparent;
+    scrollbar-width: thin;
+  }
+
+  *::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.35);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
   }
 
   #root {

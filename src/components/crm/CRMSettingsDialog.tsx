@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Pipeline, Stage } from "@/hooks/useCRM";
+import { Pipeline, Stage, useCRMSetting, useUpsertCRMSetting } from "@/hooks/useCRM";
 
 interface CRMSettingsDialogProps {
   open: boolean;
@@ -49,6 +49,9 @@ export function CRMSettingsDialog({
   const [newStageName, setNewStageName] = useState("");
   const [newPipelineName, setNewPipelineName] = useState("");
   const [deleteStage, setDeleteStage] = useState<Stage | null>(null);
+  const { data: webhookSetting } = useCRMSetting("crm_webhook");
+  const upsertSetting = useUpsertCRMSetting();
+  const [webhookUrl, setWebhookUrl] = useState("");
 
   useEffect(() => {
     if (pipelines.length > 0 && !selectedPipeline) {
@@ -59,6 +62,20 @@ export function CRMSettingsDialog({
   useEffect(() => {
     setLocalStages(stages.filter((s) => s.pipeline_id === selectedPipeline));
   }, [stages, selectedPipeline]);
+
+  useEffect(() => {
+    if (webhookSetting?.value && typeof webhookSetting.value === "object") {
+      const value = webhookSetting.value as { url?: unknown };
+      if (typeof value.url === "string") {
+        setWebhookUrl(value.url);
+        return;
+      }
+    }
+
+    if (typeof webhookSetting?.value === "string") {
+      setWebhookUrl(webhookSetting.value);
+    }
+  }, [webhookSetting]);
 
   const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
@@ -220,6 +237,10 @@ export function CRMSettingsDialog({
     queryClient.invalidateQueries({ queryKey: ["crm-stages"] });
   };
 
+  const handleSaveWebhook = async () => {
+    await upsertSetting.mutateAsync({ key: "crm_webhook", value: { url: webhookUrl } });
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -235,6 +256,9 @@ export function CRMSettingsDialog({
               </TabsTrigger>
               <TabsTrigger value="stages" className="flex-1">
                 Etapas
+              </TabsTrigger>
+              <TabsTrigger value="webhook" className="flex-1">
+                Webhook
               </TabsTrigger>
             </TabsList>
 
@@ -425,6 +449,28 @@ export function CRMSettingsDialog({
                     </Droppable>
                   </DragDropContext>
                 </ScrollArea>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="webhook" className="mt-4">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>URL do webhook do CRM</Label>
+                  <Input
+                    placeholder="https://sua-url.com/webhook"
+                    value={webhookUrl}
+                    onChange={(e) => setWebhookUrl(e.target.value)}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Essa URL será chamada quando eventos importantes do CRM acontecerem.
+                  </p>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button onClick={handleSaveWebhook} disabled={upsertSetting.isPending}>
+                    {upsertSetting.isPending ? "Salvando..." : "Salvar webhook"}
+                  </Button>
+                </div>
               </div>
             </TabsContent>
           </Tabs>

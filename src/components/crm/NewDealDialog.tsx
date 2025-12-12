@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -9,6 +9,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Label,
+} from "@/components/ui/label";
 import {
   Form,
   FormControl,
@@ -30,8 +33,6 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Pipeline,
   Stage,
-  Company,
-  Contact,
   useCreateDeal,
   useCreateCompany,
   useCreateContact,
@@ -40,7 +41,6 @@ import {
   useOwners,
   useIsCRMAdmin,
 } from "@/hooks/useCRM";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 const dealSchema = z.object({
@@ -73,9 +73,25 @@ export function NewDealDialog({
 }: NewDealDialogProps) {
   const [showNewCompany, setShowNewCompany] = useState(false);
   const [showNewContact, setShowNewContact] = useState(false);
-  const [newCompanyName, setNewCompanyName] = useState("");
-  const [newContactName, setNewContactName] = useState("");
-  const [newContactEmail, setNewContactEmail] = useState("");
+  const [newCompany, setNewCompany] = useState({
+    name: "",
+    document: "",
+    email: "",
+    phone: "",
+    website: "",
+    city: "",
+    state: "",
+    address: "",
+    notes: "",
+  });
+  const [newContact, setNewContact] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    position: "",
+    company_id: "",
+    notes: "",
+  });
   const [selectedPipelineId, setSelectedPipelineId] = useState(defaultPipelineId || "");
 
   const createDeal = useCreateDeal();
@@ -103,30 +119,86 @@ export function NewDealDialog({
 
   const filteredStages = stages.filter((s) => s.pipeline_id === selectedPipelineId);
 
+  useEffect(() => {
+    if (defaultPipelineId) {
+      setSelectedPipelineId(defaultPipelineId);
+      form.setValue("pipeline_id", defaultPipelineId);
+    }
+  }, [defaultPipelineId, form]);
+
+  useEffect(() => {
+    const [firstStage] = filteredStages;
+    const currentStage = form.getValues("stage_id");
+
+    if (!currentStage && firstStage) {
+      form.setValue("stage_id", firstStage.id);
+    }
+  }, [filteredStages, form]);
+
   const handlePipelineChange = (value: string) => {
     setSelectedPipelineId(value);
     form.setValue("pipeline_id", value);
     form.setValue("stage_id", "");
   };
 
+  const resetCompanyForm = () => {
+    setNewCompany({
+      name: "",
+      document: "",
+      email: "",
+      phone: "",
+      website: "",
+      city: "",
+      state: "",
+      address: "",
+      notes: "",
+    });
+  };
+
+  const resetContactForm = () => {
+    setNewContact({
+      name: "",
+      email: "",
+      phone: "",
+      position: "",
+      company_id: form.getValues("company_id") || "",
+      notes: "",
+    });
+  };
+
   const handleCreateCompany = async () => {
-    if (!newCompanyName.trim()) return;
-    const result = await createCompany.mutateAsync({ name: newCompanyName });
+    if (!newCompany.name.trim()) return;
+    const result = await createCompany.mutateAsync({
+      name: newCompany.name,
+      document: newCompany.document || undefined,
+      email: newCompany.email || undefined,
+      phone: newCompany.phone || undefined,
+      website: newCompany.website || undefined,
+      city: newCompany.city || undefined,
+      state: newCompany.state || undefined,
+      address: newCompany.address || undefined,
+      notes: newCompany.notes || undefined,
+    });
     form.setValue("company_id", result.id);
-    setNewCompanyName("");
+    resetCompanyForm();
     setShowNewCompany(false);
   };
 
   const handleCreateContact = async () => {
-    if (!newContactName.trim()) return;
+    if (!newContact.name.trim()) return;
     const result = await createContact.mutateAsync({
-      name: newContactName,
-      email: newContactEmail || undefined,
-      company_id: form.getValues("company_id") || undefined,
+      name: newContact.name,
+      email: newContact.email || undefined,
+      phone: newContact.phone || undefined,
+      position: newContact.position || undefined,
+      company_id: newContact.company_id || form.getValues("company_id") || undefined,
+      notes: newContact.notes || undefined,
     });
     form.setValue("contact_id", result.id);
-    setNewContactName("");
-    setNewContactEmail("");
+    if (!form.getValues("company_id") && result.company_id) {
+      form.setValue("company_id", result.company_id);
+    }
+    resetContactForm();
     setShowNewContact(false);
   };
 
@@ -146,286 +218,469 @@ export function NewDealDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Novo Negócio</DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Novo Negócio</DialogTitle>
+          </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Título</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Nome do negócio" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Título</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nome do negócio" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="value"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Valor (R$)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="0,00"
-                      {...field}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+              <FormField
+                control={form.control}
+                name="value"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Valor (R$)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0,00"
+                        {...field}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="pipeline_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Funil</FormLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={handlePipelineChange}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {pipelines.map((pipeline) => (
+                            <SelectItem key={pipeline.id} value={pipeline.id}>
+                              {pipeline.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="stage_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Etapa</FormLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        disabled={!selectedPipelineId}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {filteredStages.map((stage) => (
+                            <SelectItem key={stage.id} value={stage.id}>
+                              {stage.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Company */}
+              <div className="space-y-2">
+                <FormField
+                  control={form.control}
+                  name="company_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Empresa</FormLabel>
+                      <div className="flex gap-2">
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <FormControl>
+                            <SelectTrigger className="flex-1">
+                              <SelectValue placeholder="Selecione ou crie" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {companies?.map((company) => (
+                              <SelectItem key={company.id} value={company.id}>
+                                {company.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => {
+                            resetCompanyForm();
+                            setShowNewCompany(true);
+                          }}
+                          aria-label="Nova empresa"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Contact */}
+              <div className="space-y-2">
+                <FormField
+                  control={form.control}
+                  name="contact_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Contato principal</FormLabel>
+                      <div className="flex gap-2">
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <FormControl>
+                            <SelectTrigger className="flex-1">
+                              <SelectValue placeholder="Selecione ou crie" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {contacts?.map((contact) => (
+                              <SelectItem key={contact.id} value={contact.id}>
+                                {contact.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => {
+                            setNewContact((prev) => ({
+                              ...prev,
+                              company_id: form.getValues("company_id") || prev.company_id,
+                            }));
+                            setShowNewContact(true);
+                          }}
+                          aria-label="Novo contato"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Owner */}
+              {isCRMAdmin && owners && (
+                <FormField
+                  control={form.control}
+                  name="owner_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Dono do negócio</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {owners.map((owner) => (
+                            <SelectItem key={owner.user_id} value={owner.user_id}>
+                              {owner.nome} {owner.sobrenome || ""}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               )}
-            />
+
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Observações</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Notas sobre o negócio..."
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={createDeal.isPending}>
+                  {createDeal.isPending ? "Criando..." : "Criar negócio"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={showNewCompany}
+        onOpenChange={(state) => {
+          setShowNewCompany(state);
+          if (!state) {
+            resetCompanyForm();
+          }
+        }}
+      >
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Nova Empresa</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nome *</Label>
+              <Input
+                value={newCompany.name}
+                onChange={(e) => setNewCompany({ ...newCompany, name: e.target.value })}
+                placeholder="Nome da empresa"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>CNPJ</Label>
+              <Input
+                value={newCompany.document}
+                onChange={(e) => setNewCompany({ ...newCompany, document: e.target.value })}
+                placeholder="00.000.000/0000-00"
+              />
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="pipeline_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Funil</FormLabel>
-                    <Select
-                      value={field.value}
-                      onValueChange={handlePipelineChange}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {pipelines.map((pipeline) => (
-                          <SelectItem key={pipeline.id} value={pipeline.id}>
-                            {pipeline.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="stage_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Etapa</FormLabel>
-                    <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      disabled={!selectedPipelineId}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {filteredStages.map((stage) => (
-                          <SelectItem key={stage.id} value={stage.id}>
-                            {stage.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={newCompany.email}
+                  onChange={(e) => setNewCompany({ ...newCompany, email: e.target.value })}
+                  placeholder="contato@empresa.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Telefone</Label>
+                <Input
+                  value={newCompany.phone}
+                  onChange={(e) => setNewCompany({ ...newCompany, phone: e.target.value })}
+                  placeholder="(00) 0000-0000"
+                />
+              </div>
             </div>
 
-            {/* Company */}
             <div className="space-y-2">
-              <FormField
-                control={form.control}
-                name="company_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Empresa</FormLabel>
-                    <div className="flex gap-2">
-                      <Select value={field.value} onValueChange={field.onChange}>
-                        <FormControl>
-                          <SelectTrigger className="flex-1">
-                            <SelectValue placeholder="Selecione ou crie" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {companies?.map((company) => (
-                            <SelectItem key={company.id} value={company.id}>
-                              {company.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setShowNewCompany(!showNewCompany)}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
+              <Label>Site</Label>
+              <Input
+                value={newCompany.website}
+                onChange={(e) => setNewCompany({ ...newCompany, website: e.target.value })}
+                placeholder="https://empresa.com.br"
               />
-
-              {showNewCompany && (
-                <div className="flex gap-2 p-3 bg-muted/50 rounded-lg">
-                  <Input
-                    placeholder="Nome da empresa"
-                    value={newCompanyName}
-                    onChange={(e) => setNewCompanyName(e.target.value)}
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={handleCreateCompany}
-                    disabled={!newCompanyName.trim()}
-                  >
-                    Criar
-                  </Button>
-                </div>
-              )}
             </div>
 
-            {/* Contact */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Cidade</Label>
+                <Input
+                  value={newCompany.city}
+                  onChange={(e) => setNewCompany({ ...newCompany, city: e.target.value })}
+                  placeholder="Cidade"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Estado</Label>
+                <Input
+                  value={newCompany.state}
+                  onChange={(e) => setNewCompany({ ...newCompany, state: e.target.value })}
+                  placeholder="UF"
+                  maxLength={2}
+                />
+              </div>
+            </div>
+
             <div className="space-y-2">
-              <FormField
-                control={form.control}
-                name="contact_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Contato principal</FormLabel>
-                    <div className="flex gap-2">
-                      <Select value={field.value} onValueChange={field.onChange}>
-                        <FormControl>
-                          <SelectTrigger className="flex-1">
-                            <SelectValue placeholder="Selecione ou crie" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {contacts?.map((contact) => (
-                            <SelectItem key={contact.id} value={contact.id}>
-                              {contact.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setShowNewContact(!showNewContact)}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
+              <Label>Endereço</Label>
+              <Input
+                value={newCompany.address}
+                onChange={(e) => setNewCompany({ ...newCompany, address: e.target.value })}
+                placeholder="Rua, número, bairro"
               />
-
-              {showNewContact && (
-                <div className="space-y-2 p-3 bg-muted/50 rounded-lg">
-                  <Input
-                    placeholder="Nome do contato"
-                    value={newContactName}
-                    onChange={(e) => setNewContactName(e.target.value)}
-                  />
-                  <Input
-                    placeholder="Email (opcional)"
-                    type="email"
-                    value={newContactEmail}
-                    onChange={(e) => setNewContactEmail(e.target.value)}
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={handleCreateContact}
-                    disabled={!newContactName.trim()}
-                  >
-                    Criar contato
-                  </Button>
-                </div>
-              )}
             </div>
 
-            {/* Owner */}
-            {isCRMAdmin && owners && (
-              <FormField
-                control={form.control}
-                name="owner_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Dono do negócio</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {owners.map((owner) => (
-                          <SelectItem key={owner.user_id} value={owner.user_id}>
-                            {owner.nome} {owner.sobrenome || ""}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
+            <div className="space-y-2">
+              <Label>Observações</Label>
+              <Textarea
+                value={newCompany.notes}
+                onChange={(e) => setNewCompany({ ...newCompany, notes: e.target.value })}
+                placeholder="Notas sobre a empresa..."
               />
-            )}
+            </div>
 
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Observações</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Notas sobre o negócio..."
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="flex justify-end gap-2 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setShowNewCompany(false)}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={createDeal.isPending}>
-                {createDeal.isPending ? "Criando..." : "Criar negócio"}
+              <Button
+                onClick={handleCreateCompany}
+                disabled={!newCompany.name.trim() || createCompany.isPending}
+              >
+                Criar empresa
               </Button>
             </div>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={showNewContact}
+        onOpenChange={(state) => {
+          setShowNewContact(state);
+          if (!state) {
+            resetContactForm();
+          }
+        }}
+      >
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Novo Contato</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nome *</Label>
+              <Input
+                value={newContact.name}
+                onChange={(e) => setNewContact({ ...newContact, name: e.target.value })}
+                placeholder="Nome do contato"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={newContact.email}
+                  onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
+                  placeholder="email@exemplo.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Telefone</Label>
+                <Input
+                  value={newContact.phone}
+                  onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
+                  placeholder="(00) 00000-0000"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Cargo</Label>
+                <Input
+                  value={newContact.position}
+                  onChange={(e) => setNewContact({ ...newContact, position: e.target.value })}
+                  placeholder="Cargo"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Empresa</Label>
+                <Select
+                  value={newContact.company_id}
+                  onValueChange={(value) => setNewContact({ ...newContact, company_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {companies?.map((company) => (
+                      <SelectItem key={company.id} value={company.id}>
+                        {company.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Observações</Label>
+              <Textarea
+                value={newContact.notes}
+                onChange={(e) => setNewContact({ ...newContact, notes: e.target.value })}
+                placeholder="Notas sobre o contato..."
+              />
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowNewContact(false)}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleCreateContact}
+                disabled={!newContact.name.trim() || createContact.isPending}
+              >
+                Criar contato
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
