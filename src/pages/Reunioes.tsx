@@ -30,6 +30,7 @@ export default function Reunioes() {
   const [audioDuration, setAudioDuration] = useState<number>(0);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [meetingDate, setMeetingDate] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch clients
@@ -105,6 +106,11 @@ export default function Reunioes() {
       return;
     }
 
+    if (!meetingDate) {
+      toast.error("Informe a data da reunião");
+      return;
+    }
+
     const selectedClientData = clients?.find((c) => c.id_cliente === selectedClient);
     if (!selectedClientData) {
       toast.error("Cliente não encontrado");
@@ -153,6 +159,7 @@ export default function Reunioes() {
           duration_seconds: audioDuration,
           duration_formatted: formatDuration(audioDuration),
           uploaded_at: new Date().toISOString(),
+          meeting_date: meetingDate,
         };
 
         try {
@@ -172,12 +179,17 @@ export default function Reunioes() {
 
       setUploadProgress(100);
 
-      toast.success("Arquivo enviado com sucesso!");
+      toast.success("Arquivo enviado!", {
+        description:
+          "Você receberá uma notificação ou E-mail quando a transcrição estiver finalizada.",
+        duration: 5000,
+      });
 
       // Reset form
       setAudioFile(null);
       setSelectedClient("");
       setAudioDuration(0);
+      setMeetingDate("");
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -234,6 +246,18 @@ export default function Reunioes() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+
+                {/* Meeting Date */}
+                <div className="space-y-2">
+                  <Label htmlFor="meeting-date">Data da reunião</Label>
+                  <Input
+                    id="meeting-date"
+                    type="date"
+                    value={meetingDate}
+                    onChange={(e) => setMeetingDate(e.target.value)}
+                    max={new Date().toISOString().split("T")[0]}
+                  />
                 </div>
 
                 {/* File Upload */}
