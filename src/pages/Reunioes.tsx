@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -51,6 +52,7 @@ export default function Reunioes() {
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingTranscription | null>(
     null,
   );
+  const [isMeetingDialogOpen, setIsMeetingDialogOpen] = useState(false);
 
   // Fetch clients
   const { data: clients, isLoading: loadingClients } = useQuery({
@@ -353,12 +355,12 @@ export default function Reunioes() {
           </TabsContent>
 
           <TabsContent value="transcricoes" className="mt-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <Card className="lg:col-span-1 h-full">
+            <div className="space-y-4">
+              <Card>
                 <CardHeader>
                   <CardTitle>Transcrições</CardTitle>
                   <CardDescription>
-                    Selecione uma reunião para ver os detalhes
+                    Clique em uma reunião para ver os detalhes
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -381,7 +383,10 @@ export default function Reunioes() {
                     return (
                       <button
                         key={meeting.id}
-                        onClick={() => setSelectedMeeting(meeting)}
+                        onClick={() => {
+                          setSelectedMeeting(meeting);
+                          setIsMeetingDialogOpen(true);
+                        }}
                         className={`w-full text-left border rounded-lg p-3 hover:border-primary transition-colors ${
                           selectedMeeting?.id === meeting.id ? "border-primary bg-primary/5" : "border-input"
                         }`}
@@ -405,16 +410,25 @@ export default function Reunioes() {
                 </CardContent>
               </Card>
 
-              <Card className="lg:col-span-2 h-full">
-                <CardHeader>
-                  <CardTitle>Detalhes da reunião</CardTitle>
-                  <CardDescription>
-                    {selectedMeeting
-                      ? "Confira os pontos discutidos e próximos passos"
-                      : "Selecione uma transcrição para visualizar"}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
+              <Dialog
+                open={isMeetingDialogOpen}
+                onOpenChange={(open) => {
+                  setIsMeetingDialogOpen(open);
+                  if (!open) {
+                    setSelectedMeeting(null);
+                  }
+                }}
+              >
+                <DialogContent className="max-w-3xl">
+                  <DialogHeader>
+                    <DialogTitle>Detalhes da reunião</DialogTitle>
+                    <DialogDescription>
+                      {selectedMeeting
+                        ? "Confira os pontos discutidos e próximos passos"
+                        : "Selecione uma transcrição para visualizar"}
+                    </DialogDescription>
+                  </DialogHeader>
+
                   {selectedMeeting ? (
                     <div className="space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -451,8 +465,8 @@ export default function Reunioes() {
                       <p>Selecione uma transcrição para ver os detalhes.</p>
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </DialogContent>
+              </Dialog>
             </div>
           </TabsContent>
         </Tabs>
