@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -17,10 +18,27 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface Cliente {
   id_cliente: string;
   nome_cliente: string;
+}
+
+interface MeetingTranscription {
+  id: string;
+  id_cliente: string;
+  resumo_executivo: string;
+  pontos_debatidos: string;
+  decisoes_tomadas: string;
+  proximos_passos: string;
+  topicos_de_servico: string;
+  pendencias_de_confirmacao: string;
+  riscos_e_alertas: string;
+  meeting_date: string;
+  create_at: string;
 }
 
 export default function Reunioes() {
@@ -31,6 +49,10 @@ export default function Reunioes() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedMeeting, setSelectedMeeting] = useState<MeetingTranscription | null>(
+    null,
+  );
+  const [isMeetingDialogOpen, setIsMeetingDialogOpen] = useState(false);
 
   // Fetch clients
   const { data: clients, isLoading: loadingClients } = useQuery({
@@ -61,6 +83,27 @@ export default function Reunioes() {
       return data?.value as string | null;
     },
   });
+
+  const {
+    data: meetingTranscriptions,
+    isLoading: loadingTranscriptions,
+    error: transcriptionsError,
+  } = useQuery({
+    queryKey: ["meeting-transcriptions"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("meeting_transcriptions")
+        .select("*")
+        .order("meeting_date", { ascending: false });
+
+      if (error) throw error;
+      return data as MeetingTranscription[];
+    },
+  });
+
+  if (transcriptionsError) {
+    console.error("Erro ao carregar transcrições", transcriptionsError);
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -312,22 +355,138 @@ export default function Reunioes() {
           </TabsContent>
 
           <TabsContent value="transcricoes" className="mt-6">
-            <Card>
-              <CardContent className="py-16">
-                <div className="text-center space-y-4">
-                  <Construction className="h-16 w-16 mx-auto text-muted-foreground" />
-                  <div>
-                    <h3 className="text-lg font-medium">Em desenvolvimento</h3>
-                    <p className="text-muted-foreground">
-                      A funcionalidade de transcrições está sendo desenvolvida e estará disponível em breve.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Transcrições</CardTitle>
+                  <CardDescription>
+                    Clique em uma reunião para ver os detalhes
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {loadingTranscriptions && (
+                    <p className="text-sm text-muted-foreground">Carregando transcrições...</p>
+                  )}
+
+                  {!loadingTranscriptions && !meetingTranscriptions?.length && (
+                    <div className="flex flex-col items-center justify-center text-center gap-2 py-8 text-muted-foreground">
+                      <Construction className="h-10 w-10" />
+                      <p>Nenhuma transcrição encontrada.</p>
+                    </div>
+                  )}
+
+                  {meetingTranscriptions?.map((meeting) => {
+                    const clientName = clients?.find(
+                      (client) => client.id_cliente === meeting.id_cliente,
+                    )?.nome_cliente;
+
+                    return (
+                      <button
+                        key={meeting.id}
+                        onClick={() => {
+                          setSelectedMeeting(meeting);
+                          setIsMeetingDialogOpen(true);
+                        }}
+                        className={`w-full text-left border rounded-lg p-3 hover:border-primary transition-colors ${
+                          selectedMeeting?.id === meeting.id ? "border-primary bg-primary/5" : "border-input"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div>
+                            <p className="font-semibold leading-tight">
+                              {clientName || "Cliente não encontrado"}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {meeting.meeting_date
+                                ? format(new Date(meeting.meeting_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+                                : "Data não informada"}
+                            </p>
+                          </div>
+                          <Badge variant="secondary">Ver detalhes</Badge>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+
+              <Dialog
+                open={isMeetingDialogOpen}
+                onOpenChange={(open) => {
+                  setIsMeetingDialogOpen(open);
+                  if (!open) {
+                    setSelectedMeeting(null);
+                  }
+                }}
+              >
+                <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Detalhes da reunião</DialogTitle>
+                    <DialogDescription>
+                      {selectedMeeting
+                        ? "Confira os pontos discutidos e próximos passos"
+                        : "Selecione uma transcrição para visualizar"}
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  {selectedMeeting ? (
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <p className="text-sm text-muted-foreground">Cliente</p>
+                          <p className="font-semibold">
+                            {clients?.find((c) => c.id_cliente === selectedMeeting.id_cliente)?.nome_cliente ||
+                              "Cliente não encontrado"}
+                          </p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-sm text-muted-foreground">Data da reunião</p>
+                          <p className="font-semibold">
+                            {selectedMeeting.meeting_date
+                              ? format(new Date(selectedMeeting.meeting_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+                              : "Data não informada"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <Section title="Resumo executivo" content={selectedMeeting.resumo_executivo} />
+                        <Section title="Pontos debatidos" content={selectedMeeting.pontos_debatidos} />
+                        <Section title="Decisões tomadas" content={selectedMeeting.decisoes_tomadas} />
+                        <Section title="Próximos passos" content={selectedMeeting.proximos_passos} />
+                        <Section title="Tópicos de serviço" content={selectedMeeting.topicos_de_servico} />
+                        <Section title="Pendências de confirmação" content={selectedMeeting.pendencias_de_confirmacao} />
+                        <Section title="Riscos e alertas" content={selectedMeeting.riscos_e_alertas} />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-center gap-2 py-12 text-muted-foreground">
+                      <Construction className="h-10 w-10" />
+                      <p>Selecione uma transcrição para ver os detalhes.</p>
+                    </div>
+                  )}
+                </DialogContent>
+              </Dialog>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
     </Layout>
+  );
+}
+
+interface SectionProps {
+  title: string;
+  content: string;
+}
+
+function Section({ title, content }: SectionProps) {
+  return (
+    <div className="space-y-2">
+      <h4 className="text-sm font-medium text-muted-foreground">{title}</h4>
+      <p className="whitespace-pre-wrap leading-relaxed">
+        {content || "Informação não disponível"}
+      </p>
+    </div>
   );
 }
