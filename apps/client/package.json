@@ -1,0 +1,11 @@
+{
+  "name": "@leon/client",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "echo \"Client app ainda não foi implementada.\"",
+    "build": "echo \"Client app ainda não foi implementada.\"",
+    "lint": "echo \"Client app ainda não foi implementada.\""
+  }
+}

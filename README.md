@@ -1,73 +1,52 @@
-# Welcome to your Lovable project
+# leon-agencia-hub monorepo
 
-## Project info
+Este repositório agora está organizado como um monorepo para acomodar múltiplas aplicações (admin e futuramente client) e código compartilhado.
 
-**URL**: https://lovable.dev/projects/851e114d-60a3-455a-beb2-5ff2b78a86db
+## Estrutura
 
-## How can I edit this code?
-
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/851e114d-60a3-455a-beb2-5ff2b78a86db) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+.
+├── apps/
+│   ├── admin/   # aplicação atual existente (Vite + React)
+│   └── client/  # esqueleto para futura aplicação client
+├── shared/      # espaço para tipos, utilitários e cliente de API compartilhados
+└── package.json # configuração de workspaces e scripts de orquestração
 ```
 
-**Edit a file directly in GitHub**
+## Configuração
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+1. Instale as dependências de todos os workspaces (usa `package-lock` do admin existente):
+   ```bash
+   npm run install:all
+   ```
 
-**Use GitHub Codespaces**
+2. Para continuar desenvolvendo a aplicação admin como antes:
+   ```bash
+   # opção 1: dentro do workspace
+   cd apps/admin
+   npm run dev
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+   # opção 2: a partir da raiz do monorepo
+   npm run dev:admin
+   ```
 
-## What technologies are used for this project?
+3. Builds:
+   ```bash
+   npm run build:admin
+   ```
 
-This project is built with:
+## Apps
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Admin (`apps/admin`)
+Todo o código anterior foi movido para esta pasta sem alterações funcionais. Configurações de Vite, Tailwind, Supabase e ESLint continuam lado a lado do código fonte.
 
-## How can I deploy this project?
+### Client (`apps/client`)
+Workspace reservado para a futura aplicação pública. Os scripts atuais apenas informam que a aplicação ainda não foi implementada.
 
-Simply open [Lovable](https://lovable.dev/projects/851e114d-60a3-455a-beb2-5ff2b78a86db) and click on Share -> Publish.
+## Shared (`shared`)
+Pacote interno para código comum entre aplicações. Inclui:
+- `types/index.ts`: tipos básicos (`Client`, `SocialMetrics`, `ContentApproval`).
+- `utils/index.ts`: helpers utilitários simples.
+- `api/index.ts`: helpers para configurar chamadas HTTP reutilizáveis.
 
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Implemente e consuma módulos deste pacote usando a dependência `@leon/shared` declarada nos workspaces.
