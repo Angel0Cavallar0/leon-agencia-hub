@@ -1,3 +1,19 @@
+# Dependencies
+node_modules/
+apps/*/node_modules/
+shared/node_modules/
+
+# Builds
+apps/*/dist/
+apps/*/dist-ssr/
+dist/
+
+# Environment
+.env
+.env.*
+.vercel
+apps/*/.vercel
+
 # Logs
 logs
 *.log
@@ -6,11 +22,6 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-
-node_modules
-dist
-dist-ssr
-*.local
 
 # Editor directories and files
 .vscode/*
