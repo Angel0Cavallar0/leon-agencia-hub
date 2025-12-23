@@ -9,6 +9,7 @@
     "shared"
   ],
   "scripts": {
+    "build": "npm run build:admin",
     "dev:admin": "npm --workspace apps/admin run dev",
     "dev:client": "npm --workspace apps/client run dev",
     "build:admin": "npm --workspace apps/admin run build",

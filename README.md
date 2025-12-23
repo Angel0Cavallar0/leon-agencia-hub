@@ -32,6 +32,10 @@ Este repositório agora está organizado como um monorepo para acomodar múltipl
 
 3. Builds:
    ```bash
+   # a partir da raiz (comanda o build do admin e facilita CI/Vercel)
+   npm run build
+
+   # diretamente no workspace admin
    npm run build:admin
    ```
 
