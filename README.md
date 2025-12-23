@@ -49,4 +49,6 @@ Pacote interno para código comum entre aplicações. Inclui:
 - `utils/index.ts`: helpers utilitários simples.
 - `api/index.ts`: helpers para configurar chamadas HTTP reutilizáveis.
 
-Implemente e consuma módulos deste pacote usando a dependência `@leon/shared` declarada nos workspaces.
+Implemente e consuma módulos deste pacote usando a dependência `@leon/shared` declarada nos workspaces. O pacote está
+referenciado por caminho de arquivo no `apps/admin/package.json` para permitir instalações isoladas (por exemplo,
+deploys que rodam `npm install` dentro de `apps/admin`).
