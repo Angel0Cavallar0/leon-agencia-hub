@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "echo \"Client app ainda não foi implementada.\"",
-    "build": "echo \"Client app ainda não foi implementada.\"",
+    "dev": "echo \"Client app ainda não foi implementada. Servindo placeholder estático em /public.\"",
+    "build": "mkdir -p public",
     "lint": "echo \"Client app ainda não foi implementada.\""
   }
 }
