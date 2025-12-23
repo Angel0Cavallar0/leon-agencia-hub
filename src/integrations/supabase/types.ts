@@ -180,6 +180,35 @@ export type Database = {
           },
         ]
       }
+      client_user_role: {
+        Row: {
+          client_user_id: string
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["client_app_role"]
+        }
+        Insert: {
+          client_user_id: string
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["client_app_role"]
+        }
+        Update: {
+          client_user_id?: string
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["client_app_role"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_user_role_client_user_id_fkey1"
+            columns: ["client_user_id"]
+            isOneToOne: false
+            referencedRelation: "clientes_infos"
+            referencedColumns: ["client_user_id"]
+          },
+        ]
+      }
       cliente_contato: {
         Row: {
           email: string | null
@@ -1110,6 +1139,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "manager" | "supervisor" | "assistent" | "basic"
+      client_app_role: "admin"
       crm_access_level_enum:
         | "admin"
         | "gerente"
@@ -1244,6 +1274,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "manager", "supervisor", "assistent", "basic"],
+      client_app_role: ["admin"],
       crm_access_level_enum: [
         "admin",
         "gerente",
